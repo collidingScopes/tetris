@@ -32,9 +32,11 @@ let currentPosition = { x: 0, y: 0 };
 let score = 0;
 let highScore = 0;
 let level = 1;
-let gameSpeed = 1000; // milliseconds
+let initialGameSpeed = 1200;
+let gameSpeed = initialGameSpeed; // milliseconds
 let gameOver = false;
 let gameStarted = false;
+let gamePaused = false;
 let gameLoop;
 let blocks = [];
 let ghostBlocks = [];
@@ -90,11 +92,15 @@ function init() {
     // Create game board grid
     createGrid();
 
+    // Create pause button
+    createPauseButton();
+    
     // Add event listeners
     window.addEventListener('keydown', handleKeyPress);
     window.addEventListener('resize', handleResize);
     document.getElementById('restart-button').addEventListener('click', resetGame);
     document.getElementById('start-button').addEventListener('click', startGame);
+    document.getElementById('pause-button').addEventListener('click', togglePause);
     
     // Initialize next piece preview
     initNextPiecePreview();
@@ -111,7 +117,7 @@ function startGame() {
     // Get the selected starting level
     const selectedLevel = parseInt(document.getElementById('starting-level').value);
     level = selectedLevel;
-    gameSpeed = Math.max(100, 1000 - (level - 1) * 100);
+    gameSpeed = Math.max(100, initialGameSpeed - (level - 1) * 100);
     
     resetGame();
 }
@@ -269,7 +275,7 @@ function resetGame() {
     // Don't reset level if it was selected by user
     if (!gameStarted) {
         level = 1;
-        gameSpeed = 1000;
+        gameSpeed = initialGameSpeed;
     }
     gameOver = false;
     
@@ -374,21 +380,39 @@ function renderPiece() {
 
 // Create a block at the given position
 function createBlock(x, y, color, isPiece = false) {
-    const geometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+    // Create a group to hold both the main block and its border
+    const blockGroup = new THREE.Group();
+    
+    // Main block (slightly smaller to allow for border)
+    const geometry = new THREE.BoxGeometry(BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95);
     const material = new THREE.MeshPhongMaterial({ color: color });
     const cube = new THREE.Mesh(geometry, material);
     
-    // Position the cube
-    cube.position.set(x + BLOCK_SIZE / 2, y + BLOCK_SIZE / 2, 0);
+    // Create a slightly larger wire frame for the border
+    const borderGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+    const borderMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xcccccc, 
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3
+    });
+    const border = new THREE.Mesh(borderGeometry, borderMaterial);
+    
+    // Add both to the group
+    blockGroup.add(cube);
+    blockGroup.add(border);
+    
+    // Position the group
+    blockGroup.position.set(x + BLOCK_SIZE / 2, y + BLOCK_SIZE / 2, 0);
     
     // Add custom data for tracking
-    cube.userData = { x, y, color, isPiece };
+    blockGroup.userData = { x, y, color, isPiece };
     
     // Add to scene and blocks array
-    scene.add(cube);
-    blocks.push(cube);
+    scene.add(blockGroup);
+    blocks.push(blockGroup);
     
-    return cube;
+    return blockGroup;
 }
 
 // Create a ghost piece to show where the current piece will land
@@ -409,7 +433,7 @@ function createGhostPiece() {
     const ghostMaterial = new THREE.MeshPhongMaterial({ 
         color: ghostColor, 
         transparent: true, 
-        opacity: 0.3,
+        opacity: 0.25,
     });
     
     for (let y = 0; y < currentPiece.shape.length; y++) {
@@ -418,15 +442,33 @@ function createGhostPiece() {
                 const blockX = currentPosition.x + x;
                 const blockY = dropY + y;
                 
-                const geometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                // Create a group for ghost piece with border
+                const ghostGroup = new THREE.Group();
+                
+                // Main ghost block
+                const geometry = new THREE.BoxGeometry(BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95);
                 const cube = new THREE.Mesh(geometry, ghostMaterial);
                 
-                // Position the cube
-                cube.position.set(blockX + BLOCK_SIZE / 2, blockY + BLOCK_SIZE / 2, 0);
+                // Create a slightly larger wire frame for the border
+                const borderGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                const borderMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xcccccc, 
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.1
+                });
+                const border = new THREE.Mesh(borderGeometry, borderMaterial);
+                
+                // Add both to the group
+                ghostGroup.add(cube);
+                ghostGroup.add(border);
+                
+                // Position the group
+                ghostGroup.position.set(blockX + BLOCK_SIZE / 2, blockY + BLOCK_SIZE / 2, 0);
                 
                 // Add to scene and ghost blocks array
-                scene.add(cube);
-                ghostBlocks.push(cube);
+                scene.add(ghostGroup);
+                ghostBlocks.push(ghostGroup);
             }
         }
     }
@@ -619,7 +661,7 @@ function checkLines() {
             document.getElementById('level').textContent = level;
             
             // Speed up the game
-            gameSpeed = Math.max(100, 1000 - (level - 1) * 100);
+            gameSpeed = Math.max(100, initialGameSpeed - (level - 1) * 100);
             clearInterval(gameLoop);
             gameLoop = setInterval(update, gameSpeed);
         }
@@ -628,7 +670,7 @@ function checkLines() {
 
 // Main game update function
 function update() {
-    if (gameOver || !gameStarted) return;
+    if (gameOver || !gameStarted || gamePaused) return;
     
     // Move piece down
     if (!movePiece(0, -1)) {
@@ -639,6 +681,15 @@ function update() {
 // Handle keyboard input
 function handleKeyPress(event) {
     if (gameOver || !gameStarted) return;
+    
+    // Toggle pause with 'P' key
+    if (event.keyCode === 80) { // P key
+        togglePause();
+        return;
+    }
+    
+    // Don't process movement keys if game is paused
+    if (gamePaused) return;
     
     switch (event.keyCode) {
         case 37: // Left arrow
@@ -654,6 +705,7 @@ function handleKeyPress(event) {
             rotatePiece();
             break;
         case 32: // Space
+            event.preventDefault();
             dropPiece();
             break;
     }
@@ -671,6 +723,60 @@ function handleResize() {
     camera.updateProjectionMatrix();
     
     renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Create pause button
+function createPauseButton() {
+    const pauseButton = document.createElement('div');
+    pauseButton.id = 'pause-button';
+    pauseButton.innerHTML = '<button class="button">⏸️</button>';
+    pauseButton.style.position = 'absolute';
+    pauseButton.style.left = '20px';
+    pauseButton.style.top = '20px';
+    pauseButton.style.zIndex = '100';
+    document.getElementById('game-container').appendChild(pauseButton);
+}
+
+// Toggle pause state
+function togglePause() {
+    if (!gameStarted || gameOver) return;
+    
+    gamePaused = !gamePaused;
+    
+    const pauseButton = document.getElementById('pause-button').querySelector('button');
+    
+    if (gamePaused) {
+        pauseButton.textContent = '▶️';
+        clearInterval(gameLoop);
+        
+        // Create pause overlay
+        if (!document.getElementById('pause-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'pause-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '50%';
+            overlay.style.left = '50%';
+            overlay.style.transform = 'translate(-50%, -50%)';
+            overlay.style.background = 'rgba(0,0,0,0.7)';
+            overlay.style.padding = '20px';
+            overlay.style.borderRadius = '10px';
+            overlay.style.color = 'white';
+            overlay.style.fontSize = '24px';
+            overlay.style.fontWeight = 'bold';
+            overlay.style.zIndex = '90';
+            overlay.textContent = 'PAUSED';
+            document.getElementById('game-container').appendChild(overlay);
+        }
+    } else {
+        pauseButton.textContent = '⏸️';
+        gameLoop = setInterval(update, gameSpeed);
+        
+        // Remove pause overlay
+        const overlay = document.getElementById('pause-overlay');
+        if (overlay) {
+            overlay.parentNode.removeChild(overlay);
+        }
+    }
 }
 
 // Animation loop

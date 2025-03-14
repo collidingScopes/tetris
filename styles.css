@@ -52,6 +52,18 @@ canvas {
 #mute-button:hover {
   background: #45a049;
 }
+#pause-button button {
+  font-size: 20px;
+  background: #4CAF50;
+  border: none;
+  color: white;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+#pause-button button:hover {
+  background: #45a049;
+}
 #game-over {
   position: absolute;
   top: 50%;
