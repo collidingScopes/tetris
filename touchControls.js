@@ -3,47 +3,21 @@ let touchStartX = 0;
 let touchStartY = 0;
 let touchEndX = 0;
 let touchEndY = 0;
+let currentTouchX = 0;
 let isTap = false;
+let isMoving = false;
+let lastMoveX = 0;
 const MIN_SWIPE_DISTANCE = 30; // Minimum distance for a swipe to be registered
+const MOVE_THRESHOLD = 20; // Distance required to trigger a movement
 
 function initTouchControls() {
     const gameContainer = document.getElementById('game-container');
     
-    /*
-    // Create mobile controls indicator
-    const mobileControls = document.createElement('div');
-    mobileControls.id = 'mobile-controls-info';
-    mobileControls.innerHTML = `
-        <div class="mobile-controls-title">Touch Controls:</div>
-        <div class="mobile-control-item">👆 Tap to rotate</div>
-        <div class="mobile-control-item">👈 Swipe left/right to move</div>
-        <div class="mobile-control-item">👇 Swipe down to drop</div>
-    `;
-    document.getElementById('game-container').appendChild(mobileControls);
-    */
-
     // Add touch event listeners
     gameContainer.addEventListener('touchstart', handleTouchStart, false);
     gameContainer.addEventListener('touchmove', handleTouchMove, false);
     gameContainer.addEventListener('touchend', handleTouchEnd, false);
-    
-    /*
-    // Check if we're on a mobile device and show mobile controls
-    updateMobileControlsVisibility();
-    window.addEventListener('resize', updateMobileControlsVisibility);
-    */
 }
-
-/*
-function updateMobileControlsVisibility() {
-    const isMobile = window.innerWidth <= 768;
-    const mobileControls = document.getElementById('mobile-controls-info');
-    
-    if (mobileControls) {
-        mobileControls.style.display = isMobile ? 'block' : 'none';
-    }
-}
-*/
 
 function handleTouchStart(event) {
     // Prevent default behavior to avoid scrolling
@@ -53,20 +27,64 @@ function handleTouchStart(event) {
     
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
+    currentTouchX = touchStartX;
     touchEndX = touchStartX;
     touchEndY = touchStartY;
     isTap = true;
+    isMoving = false;
+    lastMoveX = Math.floor(touchStartX / MOVE_THRESHOLD) * MOVE_THRESHOLD;
 }
 
 function handleTouchMove(event) {
     if (gameStarted && !gameOver && !gamePaused) {
-        touchEndX = event.touches[0].clientX;
-        touchEndY = event.touches[0].clientY;
+        const currentX = event.touches[0].clientX;
+        const currentY = event.touches[0].clientY;
+        
+        currentTouchX = currentX;
+        touchEndX = currentX;
+        touchEndY = currentY;
+        
+        // Determine if this is a drag (horizontal movement) or a swipe down
+        const deltaX = currentX - touchStartX;
+        const deltaY = currentY - touchStartY;
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
         
         // If the finger moved more than a small threshold, it's not a tap
-        if (Math.abs(touchEndX - touchStartX) > 10 || Math.abs(touchEndY - touchStartY) > 10) {
+        if (absX > 10 || absY > 10) {
             isTap = false;
         }
+        
+        // If it's primarily horizontal movement, handle continuous movement
+        if (absX > absY && absX > 10) {
+            handleContinuousMovement(currentX);
+        }
+        
+        // If it's a definite downward swipe, drop the piece immediately
+        if (deltaY > MIN_SWIPE_DISTANCE && absY > absX && !isMoving) {
+            dropPiece();
+            isMoving = true; // Prevent multiple drops in the same gesture
+        }
+    }
+}
+
+function handleContinuousMovement(currentX) {
+    // Calculate how many movements we should make based on distance
+    const currentBlockX = Math.floor(currentX / MOVE_THRESHOLD) * MOVE_THRESHOLD;
+    
+    if (currentBlockX !== lastMoveX) {
+        // Determine direction and number of movements
+        const moveDirection = currentBlockX > lastMoveX ? 1 : -1;
+        const moveSteps = Math.floor(Math.abs(currentBlockX - lastMoveX) / MOVE_THRESHOLD);
+        
+        // Move the piece the appropriate number of times in the right direction
+        for (let i = 0; i < moveSteps; i++) {
+            movePiece(moveDirection, 0);
+        }
+        
+        // Update last move position
+        lastMoveX = currentBlockX;
+        isMoving = true;
     }
 }
 
@@ -84,8 +102,9 @@ function handleTouchEnd(event) {
         return;
     }
     
-    // Horizontal swipe (move left/right)
-    if (absX > MIN_SWIPE_DISTANCE && absX > absY) {
+    // Handle final horizontal movement if needed
+    if (absX > MIN_SWIPE_DISTANCE && absX > absY && !isMoving) {
+        // This handles the case where the movement wasn't enough to trigger continuous movement
         if (deltaX > 0) {
             // Swipe right
             movePiece(1, 0);
@@ -95,8 +114,8 @@ function handleTouchEnd(event) {
         }
     }
     
-    // Vertical swipe down (hard drop)
-    if (deltaY > MIN_SWIPE_DISTANCE && absY > absX) {
+    // Handle vertical swipe down (hard drop) if not already handled
+    if (deltaY > MIN_SWIPE_DISTANCE && absY > absX && !isMoving) {
         dropPiece();
     }
 }

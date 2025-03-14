@@ -1,17 +1,26 @@
-body {
-  margin: 0;
+html, body {
+  position: fixed;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
   background: #000;
   color: white;
   font-family: Arial, sans-serif;
 }
 canvas {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 #game-container {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100%;
+  overflow: hidden;
 }
 #score-container {
   position: absolute;
