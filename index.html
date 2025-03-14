@@ -19,39 +19,46 @@
             Space : Drop
         </div>
         <div id="start-screen">
-            <h1>TETRIS</h1>
-            <p>Get ready to play the classic Tetris game!</p>
-            <ul class="controls-list">
-                <li><strong>←/→ Arrows:</strong> Move piece left/right</li>
-                <li><strong>↑ Arrow:</strong> Rotate piece</li>
-                <li><strong>↓ Arrow:</strong> Move down faster</li>
-                <li><strong>Spacebar:</strong> Hard drop</li>
-            </ul>
-            <div class="mobile-controls">
-                <h3>Mobile Controls:</h3>
-                <ul class="controls-list">
-                    <li><strong>Tap:</strong> Rotate piece</li>
-                    <li><strong>Swipe Left/Right:</strong> Move piece</li>
-                    <li><strong>Swipe Down:</strong> Hard drop</li>
-                </ul>
-            </div>
-            <p>Clear lines to score points and level up!</p>
-            <div class="level-selector">
-                <label for="starting-level">Starting Level: </label>
-                <select id="starting-level">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                </select>
-            </div>
-            <button id="start-button" class="button">START GAME</button>
+          <h1>TETRIS</h1>
+          <p>Get ready to play the classic Tetris game!</p>
+          
+          <!-- Desktop controls - will be hidden on mobile by JavaScript -->
+          <ul class="controls-list">
+              <li><strong>←/→ Arrows:</strong> Move piece left/right</li>
+              <li><strong>↑ Arrow:</strong> Rotate piece</li>
+              <li><strong>↓ Arrow:</strong> Move down faster</li>
+              <li><strong>Spacebar:</strong> Hard drop</li>
+              <li><strong>P Key:</strong> Pause game</li>
+          </ul>
+          
+          <!-- Mobile controls - will be hidden on desktop by JavaScript -->
+          <div class="mobile-controls">
+              <h3>Mobile Controls:</h3>
+              <ul class="controls-list">
+                  <li><strong>Tap:</strong> Rotate piece</li>
+                  <li><strong>Swipe Left/Right:</strong> Move piece</li>
+                  <li><strong>Swipe Down:</strong> Hard drop</li>
+                  <li><strong>Pause Button:</strong> Pause game</li>
+              </ul>
+          </div>
+          
+          <p>Clear lines to score points and level up!</p>
+          <div class="level-selector">
+              <label for="starting-level">Starting Level: </label>
+              <select id="starting-level">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+              </select>
+          </div>
+          <button id="start-button" class="button">START GAME</button>
         </div>
         <div id="next-piece-container">
             <div>NEXT PIECE</div>
@@ -68,6 +75,7 @@
     <!-- Load scripts in the correct order -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="dynamicControls.js"></script>
     <script src="touchControls.js"></script>
     <script src="sounds.js"></script>
     <script src="main.js"></script>

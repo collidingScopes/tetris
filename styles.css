@@ -138,37 +138,35 @@ canvas {
   text-align: left;
   display: inline-block;
   margin: 20px auto;
+  padding-left: 20px;
 }
 .controls-list li {
   margin-bottom: 10px;
+  list-style-type: none;
 }
 h1 {
   color: #4CAF50;
   margin-bottom: 20px;
 }
 
+/* Dynamic Controls Styles */
 
-#mobile-controls-info {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 15px;
-  border-radius: 10px;
-  z-index: 100;
-  font-size: 16px;
-  display: none; /* Hidden by default, shown on mobile */
+/* Mobile controls container styling */
+.mobile-controls {
+  margin-top: 15px;
+  border-top: 1px solid #444;
+  padding-top: 15px;
 }
 
-.mobile-controls-title {
-  font-weight: bold;
-  margin-bottom: 10px;
+.mobile-controls h3 {
   color: #4CAF50;
+  margin-bottom: 10px;
+  font-size: 18px;
 }
 
-.mobile-control-item {
-  margin-bottom: 8px;
-  white-space: nowrap;
+/* Add game-container mobile-specific styles */
+#game-container.mobile-view #controls {
+  display: none; /* Always hide keyboard controls details on mobile */
 }
 
 /* Make buttons bigger on mobile for easier touch */
@@ -205,5 +203,32 @@ h1 {
   
   #next-piece-container {
     top: 140px;
+  }
+  
+  /* Start screen mobile improvements */
+  .controls-list {
+    padding-left: 0;
+  }
+  
+  #start-screen {
+    width: 85%;
+    max-width: 400px;
+    padding: 20px;
+  }
+  
+  .mobile-controls .controls-list li {
+    margin-bottom: 15px;
+  }
+  
+  /* Make buttons more touch-friendly */
+  .button {
+    padding: 15px 25px;
+    font-size: 20px;
+  }
+  
+  /* Adjust the level selector for mobile */
+  .level-selector select {
+    padding: 12px;
+    font-size: 18px;
   }
 }

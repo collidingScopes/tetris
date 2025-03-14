@@ -9,6 +9,7 @@ const MIN_SWIPE_DISTANCE = 30; // Minimum distance for a swipe to be registered
 function initTouchControls() {
     const gameContainer = document.getElementById('game-container');
     
+    /*
     // Create mobile controls indicator
     const mobileControls = document.createElement('div');
     mobileControls.id = 'mobile-controls-info';
@@ -19,17 +20,21 @@ function initTouchControls() {
         <div class="mobile-control-item">👇 Swipe down to drop</div>
     `;
     document.getElementById('game-container').appendChild(mobileControls);
-    
+    */
+
     // Add touch event listeners
     gameContainer.addEventListener('touchstart', handleTouchStart, false);
     gameContainer.addEventListener('touchmove', handleTouchMove, false);
     gameContainer.addEventListener('touchend', handleTouchEnd, false);
     
+    /*
     // Check if we're on a mobile device and show mobile controls
     updateMobileControlsVisibility();
     window.addEventListener('resize', updateMobileControlsVisibility);
+    */
 }
 
+/*
 function updateMobileControlsVisibility() {
     const isMobile = window.innerWidth <= 768;
     const mobileControls = document.getElementById('mobile-controls-info');
@@ -38,6 +43,7 @@ function updateMobileControlsVisibility() {
         mobileControls.style.display = isMobile ? 'block' : 'none';
     }
 }
+*/
 
 function handleTouchStart(event) {
     // Prevent default behavior to avoid scrolling
