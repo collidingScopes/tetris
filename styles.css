@@ -146,3 +146,64 @@ h1 {
   color: #4CAF50;
   margin-bottom: 20px;
 }
+
+
+#mobile-controls-info {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 15px;
+  border-radius: 10px;
+  z-index: 100;
+  font-size: 16px;
+  display: none; /* Hidden by default, shown on mobile */
+}
+
+.mobile-controls-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #4CAF50;
+}
+
+.mobile-control-item {
+  margin-bottom: 8px;
+  white-space: nowrap;
+}
+
+/* Make buttons bigger on mobile for easier touch */
+@media (max-width: 768px) {
+  #score-container, #high-score-container, #level-container {
+    font-size: 20px;
+  }
+  
+  #pause-button button, #mute-button {
+    padding: 8px 16px;
+    font-size: 22px;
+  }
+  
+  #controls {
+    display: none; /* Hide keyboard controls on mobile */
+  }
+  
+  /* Stack UI elements for better mobile layout */
+  #score-container {
+    top: 10px;
+  }
+  
+  #high-score-container {
+    top: 40px;
+  }
+  
+  #level-container {
+    top: 70px;
+  }
+  
+  #audio-control {
+    top: 100px;
+  }
+  
+  #next-piece-container {
+    top: 140px;
+  }
+}

@@ -46,67 +46,70 @@ let nextPieceCamera = null;
 
 // Initialize Three.js
 function init() {
-    // Initialize audio first
-    initAudio();
-    
-    // Load high score from localStorage with fallback
-    try {
-        highScore = localStorage.getItem('tetrisHighScore') || 0;
-        document.getElementById('high-score').textContent = highScore;
-    } catch (e) {
-        console.log('localStorage not available, high score tracking disabled');
-        document.getElementById('high-score-container').style.display = 'none';
-    }
-    
-    // Create scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x111111);
+  // Initialize audio first
+  initAudio();
+  
+  // Load high score from localStorage with fallback
+  try {
+      highScore = localStorage.getItem('tetrisHighScore') || 0;
+      document.getElementById('high-score').textContent = highScore;
+  } catch (e) {
+      console.log('localStorage not available, high score tracking disabled');
+      document.getElementById('high-score-container').style.display = 'none';
+  }
+  
+  // Create scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111111);
 
-    // Create camera
-    const aspectRatio = window.innerWidth / window.innerHeight;
-    const viewSize = 25;
-    camera = new THREE.OrthographicCamera(
-        -aspectRatio * viewSize / 2,
-        aspectRatio * viewSize / 2,
-        viewSize / 2,
-        -viewSize / 2,
-        1,
-        1000
-    );
-    camera.position.set(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 20);
-    camera.lookAt(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 0);
+  // Create camera
+  const aspectRatio = window.innerWidth / window.innerHeight;
+  const viewSize = 25;
+  camera = new THREE.OrthographicCamera(
+      -aspectRatio * viewSize / 2,
+      aspectRatio * viewSize / 2,
+      viewSize / 2,
+      -viewSize / 2,
+      1,
+      1000
+  );
+  camera.position.set(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 20);
+  camera.lookAt(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 0);
 
-    // Create renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.getElementById('game-container').appendChild(renderer.domElement);
+  // Create renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.getElementById('game-container').appendChild(renderer.domElement);
 
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+  // Add lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 20, 30);
-    scene.add(directionalLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(10, 20, 30);
+  scene.add(directionalLight);
 
-    // Create game board grid
-    createGrid();
+  // Create game board grid
+  createGrid();
 
-    // Create pause button
-    createPauseButton();
-    
-    // Add event listeners
-    window.addEventListener('keydown', handleKeyPress);
-    window.addEventListener('resize', handleResize);
-    document.getElementById('restart-button').addEventListener('click', resetGame);
-    document.getElementById('start-button').addEventListener('click', startGame);
-    document.getElementById('pause-button').addEventListener('click', togglePause);
-    
-    // Initialize next piece preview
-    initNextPiecePreview();
+  // Create pause button
+  createPauseButton();
+  
+  // Add event listeners
+  window.addEventListener('keydown', handleKeyPress);
+  window.addEventListener('resize', handleResize);
+  document.getElementById('restart-button').addEventListener('click', resetGame);
+  document.getElementById('start-button').addEventListener('click', startGame);
+  document.getElementById('pause-button').addEventListener('click', togglePause);
+  
+  // Initialize next piece preview
+  initNextPiecePreview();
+  
+  // Initialize touch controls for mobile
+  initTouchControls();
 
-    // Start animation loop
-    animate();
+  // Start animation loop
+  animate();
 }
 
 // Start the game
