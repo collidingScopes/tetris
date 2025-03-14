@@ -18,10 +18,12 @@ function initAudio() {
       // Create a sequence for peaceful, ambient music
       const notes = ["G3", "B3", "D4", "G4", "B3", "D4", "G3", "A3", "C4", "E4", "A3", "C4"];
       
+      /*
       backgroundMusic = new Tone.Sequence((time, note) => {
           synth.triggerAttackRelease(note, "4n", time);
       }, notes, "4n").start(0);
-      
+      */
+     
       // Set up Tone.js transport
       Tone.Transport.bpm.value = 90;
       

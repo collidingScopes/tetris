@@ -44,6 +44,9 @@ let nextPieceCamera = null;
 
 // Initialize Three.js
 function init() {
+    // Initialize audio first
+    initAudio();
+    
     // Load high score from localStorage with fallback
     try {
         highScore = localStorage.getItem('tetrisHighScore') || 0;
@@ -313,6 +316,9 @@ function spawnNewPiece() {
       gameOver = true;
       clearInterval(gameLoop);
       
+      // Play game over sound
+      gameOverSound();
+      
       // Update high score if localStorage is available
       try {
           if (score > highScore) {
@@ -458,6 +464,12 @@ function movePiece(dx, dy) {
         currentPosition.x = newX;
         currentPosition.y = newY;
         renderPiece();
+        
+        // Play move sound when moving horizontally
+        if (dx !== 0 && dy === 0) {
+            moveSound();
+        }
+        
         return true;
     }
     return false;
@@ -477,6 +489,10 @@ function rotatePiece() {
     if (isValidMove(currentPosition.x, currentPosition.y, rotated)) {
         currentPiece.shape = rotated;
         renderPiece();
+        
+        // Play rotate sound
+        rotateSound();
+        
         return true;
     }
     return false;
@@ -516,11 +532,21 @@ function lockPiece() {
 // Drop the piece all the way down
 function dropPiece() {
     let dropped = false;
+    let droppedRows = 0;
+    
     while (movePiece(0, -1)) {
         dropped = true;
+        droppedRows++;
     }
     
     if (dropped) {
+        // Play drop sound
+        dropSound();
+        
+        // Add bonus points for hard drop (1 point per row)
+        score += droppedRows;
+        document.getElementById('score').textContent = score;
+        
         lockPiece();
     }
 }
@@ -568,6 +594,9 @@ function checkLines() {
     
     // Update score
     if (linesCleared > 0) {
+        // Play clear line sound and pass the number of lines cleared
+        clearLineSound(linesCleared);
+        
         const points = [0, 40, 100, 300, 1200][linesCleared] * level;
         score += points;
         document.getElementById('score').textContent = score;
