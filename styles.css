@@ -1,0 +1,136 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+canvas {
+  display: block;
+}
+#game-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+}
+#score-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 24px;
+  z-index: 100;
+}
+#high-score-container {
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  font-size: 24px;
+  z-index: 100;
+}
+#level-container {
+  position: absolute;
+  top: 100px;
+  right: 20px;
+  font-size: 24px;
+  z-index: 100;
+}
+#audio-control {
+  position: absolute;
+  top: 140px;
+  right: 20px;
+  z-index: 100;
+}
+#mute-button {
+  font-size: 20px;
+  background: #4CAF50;
+  border: none;
+  color: white;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+#mute-button:hover {
+  background: #45a049;
+}
+#game-over {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 100;
+  display: none;
+}
+#start-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 100;
+  width: 400px;
+}
+#next-piece-container {
+  position: absolute;
+  top: 200px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 100;
+  text-align: center;
+}
+#next-piece-canvas {
+  margin-top: 10px;
+  border: 1px solid #333;
+}
+.level-selector {
+  margin: 20px 0;
+  text-align: center;
+}
+.level-selector select {
+  padding: 8px;
+  font-size: 16px;
+  background: #333;
+  color: white;
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+}
+.button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 18px;
+  background: #4CAF50;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.button:hover {
+  background: #45a049;
+}
+#controls {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 16px;
+  z-index: 100;
+}
+.controls-list {
+  text-align: left;
+  display: inline-block;
+  margin: 20px auto;
+}
+.controls-list li {
+  margin-bottom: 10px;
+}
+h1 {
+  color: #4CAF50;
+  margin-bottom: 20px;
+}

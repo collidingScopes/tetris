@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="score-container">Score: <span id="score">0</span></div>
+        <div id="high-score-container">High Score: <span id="high-score">0</span></div>
+        <div id="level-container">Level: <span id="level">1</span></div>
+        <div id="controls">
+            Controls:<br>
+            ← → : Move left/right<br>
+            ↑ : Rotate<br>
+            ↓ : Move down<br>
+            Space : Drop
+        </div>
+        <div id="start-screen">
+            <h1>TETRIS</h1>
+            <p>Get ready to play the classic Tetris game!</p>
+            <ul class="controls-list">
+                <li><strong>←/→ Arrows:</strong> Move piece left/right</li>
+                <li><strong>↑ Arrow:</strong> Rotate piece</li>
+                <li><strong>↓ Arrow:</strong> Move down faster</li>
+                <li><strong>Spacebar:</strong> Hard drop</li>
+            </ul>
+            <p>Clear lines to score points and level up!</p>
+            <div class="level-selector">
+                <label for="starting-level">Starting Level: </label>
+                <select id="starting-level">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select>
+            </div>
+            <button id="start-button" class="button">START GAME</button>
+        </div>
+        <div id="next-piece-container">
+            <div>NEXT PIECE</div>
+            <canvas id="next-piece-canvas" width="100" height="100"></canvas>
+        </div>
+        <div id="game-over">
+            <h1>Game Over</h1>
+            <p>Your score: <span id="final-score">0</span></p>
+            <p>High score: <span id="final-high-score">0</span></p>
+            <button id="restart-button" class="button">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Load scripts in the correct order -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="sounds.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
