@@ -6,6 +6,8 @@ Background music?
 Audit the score / level / speed progression calcs
 Frutiger Aero styling for the whole page
 Play sound upon level up / locking the block
+Fix piece inversion in the next piece window
+Change button stying / colors
 */
 
 // Game constants
