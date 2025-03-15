@@ -71,9 +71,6 @@ function init() {
   // Initialize UI adjustments based on device
   adaptUIForDevice();
   
-  // Initialize performance mode with device information
-  initPerformanceMode(isMobile, isLowPerformance);
-  
   // Load high score from localStorage with fallback
   try {
       highScore = localStorage.getItem('tetrisHighScore') || 0;
@@ -114,6 +111,9 @@ function init() {
   directionalLight.position.set(10, 20, 30);
   scene.add(directionalLight);
 
+  // Initialize performance mode with device information
+  initPerformanceMode(isMobile, isLowPerformance);
+
   // Create game board grid
   createGrid();
   createThreeBorder();
@@ -133,12 +133,6 @@ function init() {
     
   // Add document visibility handling
   document.addEventListener('visibilitychange', handleVisibilityChange);
-  
-  /*
-  // Initialize pooled geometries and materials
-  blockGeometryPool.init();
-  materialCache.init();
-  */
 
   // Remove any existing interval
   if (gameLoop) {
