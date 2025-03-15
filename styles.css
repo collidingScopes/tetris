@@ -24,28 +24,28 @@ canvas {
 }
 #score-container {
   position: absolute;
-  top: 20px;
+  top: 15px;
   right: 20px;
-  font-size: 24px;
+  font-size: 20px;
   z-index: 100;
 }
 #high-score-container {
   position: absolute;
-  top: 60px;
+  top: 55px;
   right: 20px;
-  font-size: 24px;
+  font-size: 20px;
   z-index: 100;
 }
 #level-container {
   position: absolute;
-  top: 100px;
+  top: 95px;
   right: 20px;
-  font-size: 24px;
+  font-size: 20px;
   z-index: 100;
 }
 #audio-control {
   position: absolute;
-  top: 60px;
+  top: 50px;
   left: 20px;
   z-index: 100;
 }
@@ -181,7 +181,7 @@ h1 {
 /* Make buttons bigger on mobile for easier touch */
 @media (max-width: 768px) {
   #score-container, #high-score-container, #level-container {
-    font-size: 20px;
+    font-size: 18px;
   }
   
   #pause-button button, #mute-button {
@@ -195,23 +195,23 @@ h1 {
   
   /* Stack UI elements for better mobile layout */
   #score-container {
-    top: 10px;
+    top: 5px;
   }
   
   #high-score-container {
-    top: 40px;
+    top: 35px;
   }
   
   #level-container {
-    top: 70px;
+    top: 65px;
   }
   
   #audio-control {
-    top: 55px;
+    top: 50px;
   }
   
   #next-piece-container {
-    top: 110px;
+    top: 100px;
   }
   
   /* Start screen mobile improvements */

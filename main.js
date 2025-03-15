@@ -1,3 +1,14 @@
+/*
+To do:
+Add level select on the game over / restart screen
+Glossy 3D buttons
+Some animations
+Background music?
+Weird error where the game freezes / breaks?
+Audit the score / level / speed progression calcs
+Frutiger Aero styling for the whole page
+*/
+
 // Game constants
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
@@ -736,7 +747,7 @@ function createPauseButton() {
     pauseButton.innerHTML = '<button class="button">⏸️</button>';
     pauseButton.style.position = 'absolute';
     pauseButton.style.left = '20px';
-    pauseButton.style.top = '10px';
+    pauseButton.style.top = '0px';
     pauseButton.style.zIndex = '100';
     document.getElementById('game-container').appendChild(pauseButton);
 }
