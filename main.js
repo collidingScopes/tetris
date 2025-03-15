@@ -341,15 +341,16 @@ function handleVisibilityChange() {
 
 // Start the game
 function startGame() {
-    document.getElementById('start-screen').style.display = 'none';
-    gameStarted = true;
-    
-    // Get the selected starting level
-    const selectedLevel = parseInt(document.getElementById('starting-level').value);
-    level = selectedLevel;
-    gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
-    
-    resetGame();
+  console.log("start game");
+  document.getElementById('start-screen').style.display = 'none';
+  gameStarted = true;
+  
+  // Get the selected starting level
+  const selectedLevel = parseInt(document.getElementById('starting-level').value);
+  level = selectedLevel;
+  gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+  
+  resetGame();
 }
 
 function restartGame(){
