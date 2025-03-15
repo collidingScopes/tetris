@@ -45,7 +45,8 @@ let score = 0;
 let highScore = 0;
 let level = 1;
 let initialGameSpeed = 1100;
-let speedProgression = 95;
+//let speedProgression = 95;
+let speedMultiplier = 0.9; //game becomes 10% faster each level
 let gameSpeed = initialGameSpeed; // milliseconds
 let gameOver = false;
 let gameStarted = false;
@@ -270,7 +271,7 @@ function startGame() {
   // Get the selected starting level
   const selectedLevel = parseInt(document.getElementById('starting-level').value);
   level = selectedLevel;
-  gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+  gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
   
   resetGame();
 }
@@ -283,7 +284,7 @@ function restartGame1(){
   // Get the selected starting level
   const selectedLevel = parseInt(document.getElementById('restarting-level1').value);
   level = selectedLevel;
-  gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+  gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
   resetGame();
 }
 
@@ -294,7 +295,7 @@ function restartGame2(){
   // Get the selected starting level
   const selectedLevel = parseInt(document.getElementById('restarting-level2').value);
   level = selectedLevel;
-  gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+  gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
   resetGame();
 }
 
@@ -861,7 +862,7 @@ function checkLines() {
           document.getElementById('level').textContent = level;
           
           // Speed up the game
-          gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+          gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
           cancelAnimationFrame(gameLoopId);
           gameLoopId = requestAnimationFrame(animate);
       }
