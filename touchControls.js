@@ -64,7 +64,7 @@ function setupTouchListeners(canvas) {
     if (isUIElement(event.target)) return;
     
     // Prevent default behavior to avoid scrolling
-    event.preventDefault();
+    //event.preventDefault();
     
     const touch = event.touches[0];
     
@@ -90,7 +90,7 @@ function setupTouchListeners(canvas) {
     if (isUIElement(event.target)) return;
     
     // Prevent default to avoid scrolling
-    event.preventDefault();
+    //event.preventDefault();
     
     // Apply throttling for better performance (process at max 60fps)
     const now = Date.now();
