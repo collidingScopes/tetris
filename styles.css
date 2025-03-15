@@ -45,8 +45,8 @@ canvas {
 }
 #audio-control {
   position: absolute;
-  top: 140px;
-  right: 20px;
+  top: 70px;
+  left: 20px;
   z-index: 100;
 }
 #mute-button {
@@ -94,14 +94,14 @@ canvas {
   padding: 30px;
   border-radius: 10px;
   text-align: center;
-  z-index: 100;
+  z-index: 200;
   width: 400px;
 }
 #next-piece-container {
   position: absolute;
-  top: 200px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.6);
+  top: 140px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.4);
   padding: 10px;
   border-radius: 5px;
   z-index: 100;
@@ -207,11 +207,11 @@ h1 {
   }
   
   #audio-control {
-    top: 100px;
+    top: 60px;
   }
   
   #next-piece-container {
-    top: 140px;
+    top: 120px;
   }
   
   /* Start screen mobile improvements */
