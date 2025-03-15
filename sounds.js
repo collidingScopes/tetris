@@ -23,7 +23,7 @@ function initAudio() {
           synth.triggerAttackRelease(note, "4n", time);
       }, notes, "4n").start(0);
       */
-     
+
       // Set up Tone.js transport
       Tone.Transport.bpm.value = 90;
       
@@ -98,14 +98,6 @@ function initAudio() {
           Tone.Transport.start();
       }
   };
-
-  // Add audio controls if they don't already exist
-  if (!document.getElementById('audio-control')) {
-    const audioControl = document.createElement('div');
-    audioControl.id = 'audio-control';
-    audioControl.innerHTML = '<button id="mute-button" class="button">🔊</button>';
-    document.getElementById('game-container').appendChild(audioControl);
-  }
   
   // Toggle mute button
   document.getElementById('mute-button').addEventListener('click', () => {
