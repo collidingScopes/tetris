@@ -1,3 +1,9 @@
+:root {
+  --primary-color: #0d19c5;
+  --secondary-color: #c50da6;
+  --dark: #2e2e2e;
+}
+
 html, body {
   position: fixed;
   overflow: hidden;
@@ -9,6 +15,7 @@ html, body {
   color: white;
   font-family: Arial, sans-serif;
 }
+
 canvas {
   display: block;
   width: 100%;
@@ -29,76 +36,57 @@ canvas {
   overflow: hidden;
   /* max-width: 1000px; */
 }
-#score-container {
-  position: absolute;
-  top: 0px;
-  right: 20px;
-  font-size: 20px;
-  z-index: 100;
-}
-#high-score-container {
-  position: absolute;
-  top: 25px;
-  right: 20px;
-  font-size: 20px;
-  z-index: 100;
-}
-#level-container {
-  position: absolute;
-  top: 50px;
-  right: 20px;
-  font-size: 20px;
-  z-index: 100;
-}
 
 #button-container {
   position: absolute;
   top: 5px;
   left: 5px;
   display: flex;
-  gap: 10px;
+  gap: 5px;
   padding: 0;
   margin: 0;
 }
 
-#pause-button {
-  /* position: absolute;
-  left: 20px;
-  top: 10px;
-  z-index: 100; */
+#info-container {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 15px;
+  padding: 0;
+  margin: 0;
 }
+
 #pause-button, #play-button {
   font-size: 20px;
-  background: #4CAF50;
+  background: var(--primary-color);
   border: none;
   color: white;
   padding: 5px 10px;
   cursor: pointer;
   border-radius: 5px;
 }
-#mute-button {
-  /* position: absolute;
-  top: 50px;
-  left: 20px;
-  z-index: 100; */
 
+#mute-button {
   font-size: 20px;
-  background: #4CAF50;
+  background: var(--primary-color);
   border: none;
   color: white;
   padding: 5px 10px;
   cursor: pointer;
   border-radius: 5px;
 }
+
 #pause-button:hover, #mute-button:hover {
-  background: #45a049;
+  background: var(--primary-color);
 }
+
 #game-over {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.9);
   padding: 20px;
   border-radius: 10px;
   text-align: center;
@@ -119,7 +107,7 @@ canvas {
 }
 #next-piece-container {
   position: absolute;
-  top: 80px;
+  top: 30px;
   right: 5px;
   background: rgba(0, 0, 0, 0.3);
   padding: 10px;
@@ -130,7 +118,7 @@ canvas {
 }
 #next-piece-canvas {
   margin-top: 5px;
-  border: 1px solid #333;
+  border: 1px solid var(--dark);
   opacity: 0.8;
   margin: 0 auto;
   text-align: center;
@@ -142,23 +130,23 @@ canvas {
 .level-selector select {
   padding: 8px;
   font-size: 16px;
-  background: #333;
+  background: var(--dark);
   color: white;
-  border: 1px solid #4CAF50;
+  border: 2px solid var(--secondary-color);
   border-radius: 4px;
 }
+
 .button {
-  margin-top: 20px;
-  padding: 10px 20px;
+  padding: 10px;
   font-size: 18px;
-  background: #4CAF50;
+  background: var(--primary-color);
   border: none;
   color: white;
   cursor: pointer;
   border-radius: 5px;
 }
 .button:hover {
-  background: #45a049;
+  background: var(--primary-color);
 }
 
 #pause-overlay {
@@ -193,7 +181,7 @@ canvas {
   list-style-type: none;
 }
 h1 {
-  color: #4CAF50;
+  color: var(--primary-color);
   margin-bottom: 20px;
 }
 
@@ -202,12 +190,12 @@ h1 {
 /* Mobile controls container styling */
 .mobile-controls {
   margin-top: 15px;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--dark);
   padding-top: 15px;
 }
 
 .mobile-controls h3 {
-  color: #4CAF50;
+  color: var(--primary-color);
   margin-bottom: 10px;
   font-size: 18px;
 }
@@ -219,25 +207,12 @@ h1 {
 
 /* Make buttons bigger on mobile for easier touch */
 @media (max-width: 768px) {
-  #score-container, #high-score-container, #level-container {
+  #info-container {
     font-size: 18px;
   }
   
   #controls {
     display: none; /* Hide keyboard controls on mobile */
-  }
-  
-  /* Stack UI elements for better mobile layout */
-  #score-container {
-    top: 0px;
-  }
-  
-  #high-score-container {
-    top: 25px;
-  }
-  
-  #level-container {
-    top: 50px;
   }
   
   #next-piece-container {
