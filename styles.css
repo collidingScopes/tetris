@@ -68,7 +68,7 @@ canvas {
 #mute-button:hover {
   background: #45a049;
 }
-#pause-button button {
+#pause-button, #play-button {
   font-size: 20px;
   background: #4CAF50;
   border: none;
@@ -77,7 +77,7 @@ canvas {
   cursor: pointer;
   border-radius: 5px;
 }
-#pause-button button:hover {
+#pause-button:hover {
   background: #45a049;
 }
 #game-over {
@@ -151,7 +151,7 @@ canvas {
 #pause-button {
   position: absolute;
   left: 20px;
-  top: 0px;
+  top: 20px;
   z-index: 100;
 }
 

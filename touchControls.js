@@ -6,6 +6,11 @@ Swipping downwards with high velocity should trigger a hard drop of the block
 All UI buttons (start game, restart game, mute button, pause button) should not be blocked by the touch interaction -- the user should be able to click those buttons
 */
 
+/**
+ * touchControls.js - Complete integrated touch controls and mobile button fixes
+ * Handles all touch interactions for the Tetris game on mobile devices
+ */
+
 // Enhanced touch state tracking object
 const touchState = {
   active: false,
@@ -259,72 +264,343 @@ function resetTouchState() {
   touchState.reset();
 }
 
-// Setup touch event handlers
+// Setup touch event handlers on the THREE.js renderer's domElement
 function setupTouchHandlers(element) {
-  // Touch start handler
+  // First, ensure we remove any existing handlers to prevent duplicates
+  element.removeEventListener('touchstart', handleTouchStart);
+  element.removeEventListener('touchmove', handleTouchMove);
+  element.removeEventListener('touchend', handleTouchEnd);
+  element.removeEventListener('touchcancel', resetTouchState);
+  
+  // Now add our handlers
   element.addEventListener('touchstart', handleTouchStart, { passive: false });
-  
-  // Touch move handler
   element.addEventListener('touchmove', handleTouchMove, { passive: false });
-  
-  // Touch end handler
   element.addEventListener('touchend', handleTouchEnd, { passive: false });
-  
-  // Touch cancel handler
   element.addEventListener('touchcancel', resetTouchState, { passive: true });
+  
+  console.log("Touch handlers set up successfully on", element);
 }
 
-// Initialize touch controls when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-  // Only initialize touch controls on mobile devices
-  if (deviceUtils.isMobile()) {
-    console.log("Initializing touch controls for mobile device");
-    
-    // Get the game container or canvas element to attach touch events to
-    const gameContainer = document.getElementById('game-container');
-    const canvas = gameContainer.querySelector('canvas');
-    
-    // Setup touch handlers on the appropriate element
-    // We want to attach to the canvas (renderer.domElement) since that's where the game is drawn
-    if (canvas) {
-      setupTouchHandlers(canvas);
-      console.log("Touch controls attached to canvas");
-    } else {
-      // Fallback to game container if canvas isn't available yet
-      setupTouchHandlers(gameContainer);
-      console.log("Touch controls attached to game container");
-      
-      // We'll also setup touch handlers on the canvas once it's created
-      // This is a safety check in case the canvas is created after this code runs
-      const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          if (mutation.addedNodes) {
-            mutation.addedNodes.forEach(function(node) {
-              if (node.nodeName === 'CANVAS' && !node.hasAttribute('data-touch-initialized')) {
-                setupTouchHandlers(node);
-                node.setAttribute('data-touch-initialized', 'true');
-                console.log("Touch controls attached to dynamically created canvas");
-              }
-            });
-          }
-        });
-      });
-      
-      observer.observe(gameContainer, { childList: true });
-    }
-  } else {
+// FIX: Initialize touch controls AFTER the Three.js renderer is created
+function initTouchControls() {
+  // Only proceed if this is a mobile device
+  if (!deviceUtils.isMobile()) {
     console.log("Not initializing touch controls for non-mobile device");
+    return;
+  }
+  
+  console.log("Initializing touch controls for mobile device");
+  
+  // Find the THREE.js canvas if it exists
+  const rendererCanvas = document.querySelector('#game-container canvas');
+  
+  if (rendererCanvas) {
+    // Canvas exists, set up touch controls immediately
+    setupTouchHandlers(rendererCanvas);
+    rendererCanvas.setAttribute('data-touch-initialized', 'true');
+    console.log("Touch controls attached to existing canvas");
+  } else {
+    // Canvas doesn't exist yet, set up an observer to wait for it
+    console.log("Canvas not found, waiting for it to be created...");
+    
+    const gameContainer = document.getElementById('game-container');
+    
+    // Set up a MutationObserver to wait for the canvas to be added
+    const observer = new MutationObserver(function(mutations) {
+      for (const mutation of mutations) {
+        if (mutation.addedNodes) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeName === 'CANVAS' && !node.hasAttribute('data-touch-initialized')) {
+              setupTouchHandlers(node);
+              node.setAttribute('data-touch-initialized', 'true');
+              console.log("Touch controls attached to dynamically created canvas");
+              
+              // Once we've found and initialized the canvas, disconnect the observer
+              observer.disconnect();
+              return;
+            }
+          }
+        }
+      }
+    });
+    
+    // Start observing the game container for changes
+    observer.observe(gameContainer, { 
+      childList: true,
+      subtree: true
+    });
+  }
+}
+
+// Add a function to properly initialize after THREE.js is ready
+function waitForThreeJsRenderer() {
+  const interval = setInterval(() => {
+    if (window.renderer && window.renderer.domElement) {
+      clearInterval(interval);
+      setupTouchHandlers(window.renderer.domElement);
+      window.renderer.domElement.setAttribute('data-touch-initialized', 'true');
+      console.log("Touch controls attached to THREE.js renderer");
+    }
+  }, 100);
+  
+  // Safety timeout after 5 seconds
+  setTimeout(() => clearInterval(interval), 5000);
+}
+
+// -----------------------------------------------------------------
+// MOBILE BUTTON FIX INTEGRATION
+// -----------------------------------------------------------------
+
+/**
+ * Fix button touch handling on mobile devices
+ * Ensures buttons work properly alongside the game's touch controls
+ */
+function fixMobileButtons() {
+  const startButton = document.getElementById('start-button');
+  const restartButton1 = document.getElementById('restart-button1');
+  const restartButton2 = document.getElementById('restart-button2');
+  const playButton = document.getElementById('play-button');
+  
+  // Fix start button
+  if (startButton) {
+    // Remove existing click listeners to avoid duplication
+    const newStartButton = startButton.cloneNode(true);
+    startButton.parentNode.replaceChild(newStartButton, startButton);
+    
+    // Add both click and touchend events with stopPropagation to prevent interference with game touches
+    newStartButton.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation(); // Important: stop propagation to game canvas
+      console.log("Start button touched");
+      startGame();
+    }, { passive: false });
+    
+    // Keep the click handler for desktop
+    newStartButton.addEventListener('click', function(e) {
+      e.stopPropagation(); // Also stop click propagation
+      console.log("Start button clicked");
+      startGame();
+    });
+  }
+  
+  // Fix restart button 1 (pause overlay)
+  if (restartButton1) {
+    const newRestartButton = restartButton1.cloneNode(true);
+    restartButton1.parentNode.replaceChild(newRestartButton, restartButton1);
+    
+    newRestartButton.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Restart button 1 touched");
+      restartGame1();
+    }, { passive: false });
+    
+    newRestartButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      console.log("Restart button 1 clicked");
+      restartGame1();
+    });
+  }
+  
+  // Fix restart button 2 (game over screen)
+  if (restartButton2) {
+    const newRestartButton = restartButton2.cloneNode(true);
+    restartButton2.parentNode.replaceChild(newRestartButton, restartButton2);
+    
+    newRestartButton.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Restart button 2 touched");
+      restartGame2();
+    }, { passive: false });
+    
+    newRestartButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      console.log("Restart button 2 clicked");
+      restartGame2();
+    });
+  }
+  
+  // Fix play button
+  if (playButton) {
+    const newPlayButton = playButton.cloneNode(true);
+    playButton.parentNode.replaceChild(newPlayButton, playButton);
+    
+    newPlayButton.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Play button touched");
+      playGame();
+    }, { passive: false });
+    
+    newPlayButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      console.log("Play button clicked");
+      playGame();
+    });
+  }
+  
+  // Fix pause button
+  const pauseButton = document.querySelector('#pause-button button');
+  if (pauseButton) {
+    const newPauseButton = pauseButton.cloneNode(true);
+    pauseButton.parentNode.replaceChild(newPauseButton, pauseButton);
+    
+    newPauseButton.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Pause button touched");
+      togglePause();
+    }, { passive: false });
+    
+    newPauseButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      console.log("Pause button clicked");
+      togglePause();
+    });
+  }
+  
+  // Fix mute button
+  const muteButton = document.getElementById('mute-button');
+  if (muteButton) {
+    const newMuteButton = muteButton.cloneNode(true);
+    muteButton.parentNode.replaceChild(newMuteButton, muteButton);
+    
+    newMuteButton.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Mute button touched");
+      // The audio toggle functionality is handled elsewhere
+    }, { passive: false });
+  }
+}
+
+// Apply CSS fix to ensure buttons are tappable and properly positioned above the canvas
+function applyButtonCSSFix() {
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Fix for mobile buttons */
+    #start-button, #restart-button1, #restart-button2, #play-button, #pause-button button, #mute-button {
+      position: relative;
+      z-index: 300;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      user-select: none;
+      cursor: pointer;
+    }
+    
+    /* Make buttons easier to tap on mobile */
+    @media (max-width: 768px) {
+      #start-button, #restart-button1, #restart-button2, #play-button, #pause-button button, #mute-button {
+        padding: 15px 25px;
+        min-height: 44px;
+        min-width: 44px;
+      }
+    }
+    
+    /* Make start screen appear above canvas */
+    #start-screen {
+      z-index: 250;
+      pointer-events: auto;
+    }
+    
+    /* Make game over screen appear above canvas */
+    #game-over {
+      z-index: 250;
+      pointer-events: auto;
+    }
+    
+    /* Make pause overlay appear above canvas */
+    #pause-overlay {
+      z-index: 250;
+      pointer-events: auto;
+    }
+    
+    /* Ensure canvas doesn't capture all touch events */
+    #game-container canvas {
+      z-index: 10;
+      touch-action: none;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Fix touch event propagation in game container
+function fixTouchPropagation() {
+  const gameContainer = document.getElementById('game-container');
+  
+  if (gameContainer && deviceUtils.isMobile()) {
+    // Add a specific capture phase handler for UI elements
+    gameContainer.addEventListener('touchstart', function(e) {
+      const target = e.target;
+      
+      // If the touch is on a button or UI control, don't interfere
+      if (
+        target.tagName === 'BUTTON' || 
+        target.classList.contains('button') ||
+        target.id === 'start-button' ||
+        target.id === 'restart-button1' ||
+        target.id === 'restart-button2' ||
+        target.id === 'pause-button' ||
+        target.id === 'mute-button' ||
+        target.closest('.level-selector') !== null
+      ) {
+        // Don't prevent default or stop propagation
+        // Just let it pass through to the normal event handlers
+        return;
+      }
+    }, { capture: true });
+  }
+}
+
+// -----------------------------------------------------------------
+// INITIALIZATION AND EVENT BINDING
+// -----------------------------------------------------------------
+
+// Hook into the game start for initialization
+function hookIntoGameStart() {
+  const startButton = document.getElementById('start-button');
+  if (startButton) {
+    startButton.addEventListener('click', function() {
+      // Wait a moment for the game to initialize before setting up touch controls
+      setTimeout(initTouchControls, 200);
+    });
+  }
+}
+
+// Main initialization function to run on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+  // First, fix mobile buttons
+  fixMobileButtons();
+  
+  // Fix touch propagation
+  fixTouchPropagation();
+  
+  // Apply CSS fixes
+  applyButtonCSSFix();
+  
+  // Attempt to initialize touch controls right away
+  initTouchControls();
+  
+  // Also try after a short delay to allow scripts to initialize
+  setTimeout(initTouchControls, 500);
+  
+  // Wait specifically for the THREE.js renderer
+  setTimeout(waitForThreeJsRenderer, 1000);
+  
+  // Final safety attempt after everything should be loaded
+  setTimeout(initTouchControls, 2000);
+});
+
+// Reinitialize controls when a new game starts
+document.addEventListener('newPieceSpawned', function() {
+  const canvas = document.querySelector('#game-container canvas');
+  if (canvas && !canvas.hasAttribute('data-touch-initialized')) {
+    setupTouchHandlers(canvas);
+    canvas.setAttribute('data-touch-initialized', 'true');
+    console.log("Touch controls attached after new piece spawned");
   }
 });
 
-// Also initialize when a new piece spawns to ensure controls are active
-document.addEventListener('newPieceSpawned', function() {
-  if (deviceUtils.isMobile() && !document.querySelector('[data-touch-initialized]')) {
-    const canvas = document.querySelector('#game-container canvas');
-    if (canvas && !canvas.hasAttribute('data-touch-initialized')) {
-      setupTouchHandlers(canvas);
-      canvas.setAttribute('data-touch-initialized', 'true');
-      console.log("Touch controls attached after new piece spawned");
-    }
-  }
-});
+// Run our game start hook when the page loads
+window.addEventListener('load', hookIntoGameStart);
