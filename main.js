@@ -158,10 +158,12 @@ function initNextPiecePreview() {
         canvas: canvas,
         antialias: true 
     });
-    if(isMobileDevice){
+    if(mobileDeviceFlag){
+      console.log("small next piece preview window");
       nextPieceRenderer.setSize(50, 50);
     } else {
-      nextPieceRenderer.setSize(80, 80);
+      console.log("large next piece preview window");
+      nextPieceRenderer.setSize(100, 100);
     }
     nextPieceRenderer.setClearColor(0x111111);
     
