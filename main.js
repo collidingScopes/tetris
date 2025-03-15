@@ -7,6 +7,7 @@ Background music?
 Weird error where the game freezes / breaks?
 Audit the score / level / speed progression calcs
 Frutiger Aero styling for the whole page
+Play sound upon level up
 */
 
 // Game constants
@@ -43,8 +44,8 @@ let currentPosition = { x: 0, y: 0 };
 let score = 0;
 let highScore = 0;
 let level = 1;
-let initialGameSpeed = 1200;
-let speedProgression = 80;
+let initialGameSpeed = 1100;
+let speedProgression = 100;
 let gameSpeed = initialGameSpeed; // milliseconds
 let gameOver = false;
 let gameStarted = false;
@@ -110,7 +111,7 @@ function init() {
   // Add event listeners
   window.addEventListener('keydown', handleKeyPress);
   window.addEventListener('resize', handleResize);
-  document.getElementById('restart-button').addEventListener('click', resetGame);
+  document.getElementById('restart-button').addEventListener('click', restartGame);
   document.getElementById('start-button').addEventListener('click', startGame);
   document.getElementById('pause-button').addEventListener('click', togglePause);
   
@@ -134,6 +135,17 @@ function startGame() {
     level = selectedLevel;
     gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
     
+    resetGame();
+}
+
+function restartGame(){
+    
+    gameStarted = true;
+
+    // Get the selected starting level
+    const selectedLevel = parseInt(document.getElementById('restarting-level').value);
+    level = selectedLevel;
+    gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
     resetGame();
 }
 
