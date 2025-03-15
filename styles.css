@@ -29,8 +29,8 @@ canvas {
 
 #game-container {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0px;
+  left: 0px;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -55,6 +55,8 @@ canvas {
   gap: 15px;
   padding: 0;
   margin: 0;
+  max-width: 200px;
+  text-align: center;
 }
 
 #pause-button, #play-button {
@@ -107,7 +109,7 @@ canvas {
 }
 #next-piece-container {
   position: absolute;
-  top: 30px;
+  top: 60px;
   right: 5px;
   background: rgba(0, 0, 0, 0.3);
   padding: 10px;
@@ -160,6 +162,7 @@ canvas {
   color: white;
   font-size: 20px;
   z-index: 90;
+  text-align: center;
 }
 
 
@@ -214,11 +217,7 @@ h1 {
   #controls {
     display: none; /* Hide keyboard controls on mobile */
   }
-  
-  #next-piece-container {
-    top: 80px;
-  }
-  
+    
   /* Start screen mobile improvements */
   .controls-list {
     padding-left: 0;
