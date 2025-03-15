@@ -158,7 +158,11 @@ function initNextPiecePreview() {
         canvas: canvas,
         antialias: true 
     });
-    nextPieceRenderer.setSize(80, 80);
+    if(isMobileDevice){
+      nextPieceRenderer.setSize(50, 50);
+    } else {
+      nextPieceRenderer.setSize(80, 80);
+    }
     nextPieceRenderer.setClearColor(0x111111);
     
     // Create scene
