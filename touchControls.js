@@ -1,207 +1,261 @@
-// Touch controls for mobile users
-let touchStartX = 0;
-let touchStartY = 0;
-let touchEndX = 0;
-let touchEndY = 0;
-let currentTouchX = 0;
-let currentTouchY = 0;
-let lastMoveX = 0;
-let lastMoveY = 0;
-let isTap = false;
-let isHardDrop = false;
-let isDownwardSwipe = false;
-let activeTouchId = null;
-const MIN_SWIPE_DISTANCE = 50; // Minimum distance for a swipe to be registered
-const MOVE_THRESHOLD = 40; // Distance required to trigger a movement
-const DOWN_MOVE_THRESHOLD = 30; // Distance required to trigger a downward movement
-const HARD_DROP_THRESHOLD = 100; // Distance required for a hard drop
-const DOWNWARD_SWIPE_THRESHOLD = 10; // Threshold to detect primarily downward movement
+// touchControls.js - Improved touch interaction for mobile Tetris gameplay
 
+// Touch state variables
+let touchState = {
+  active: false,
+  identifier: null,
+  startX: 0,
+  startY: 0,
+  currentX: 0,
+  currentY: 0,
+  lastMoveX: 0,
+  lastMoveY: 0,
+  isHardDrop: false,
+  velocityY: 0,
+  lastTimestamp: 0,
+  positionHistory: []
+};
+
+// Configuration constants
+const TOUCH_CONFIG = {
+  MOVE_THRESHOLD: 30,         // Pixels needed to move a piece horizontally
+  DOWN_THRESHOLD: 40,         // Pixels needed to move a piece down
+  HARD_DROP_VELOCITY: 0.8,    // Pixels per millisecond to trigger hard drop
+  VELOCITY_SAMPLE_SIZE: 5,    // Number of touch points to calculate velocity
+  TAP_THRESHOLD: 10,          // Maximum movement to register as a tap
+  TAP_DURATION: 300           // Maximum ms for a tap
+};
+
+/**
+ * Initialize touch controls
+ */
 function initTouchControls() {
-    const gameContainer = document.getElementById('game-container');
-    
-    // Add touch event listeners
-    gameContainer.addEventListener('touchstart', handleTouchStart, false);
-    gameContainer.addEventListener('touchmove', handleTouchMove, false);
-    gameContainer.addEventListener('touchend', handleTouchEnd, false);
-    
-    // Listen for new piece spawns to reset touch interaction
-    document.addEventListener('newPieceSpawned', resetTouchInteraction);
+  const gameContainer = document.getElementById('game-container');
+  
+  // Add touch event listeners
+  gameContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+  gameContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+  gameContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+  gameContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  
+  // Listen for new piece spawns to reset touch interaction
+  document.addEventListener('newPieceSpawned', resetTouchInteraction);
+  
+  console.log("Touch controls initialized");
 }
 
+/**
+ * Reset touch interaction state
+ * Called when a new piece is spawned
+ */
 function resetTouchInteraction() {
-    // Reset all touch variables when a new piece is spawned
-    activeTouchId = null;
-    isDownwardSwipe = false;
-    isHardDrop = false;
+  touchState.active = false;
+  touchState.identifier = null;
+  touchState.isHardDrop = false;
+  touchState.positionHistory = [];
 }
 
+/**
+ * Handle touch start event
+ * @param {TouchEvent} event - Touch event
+ */
 function handleTouchStart(event) {
-    // Prevent default behavior to avoid scrolling
-    if (gameStarted && !gameOver && !gamePaused) {
-        event.preventDefault();
-    }
+  // Only handle touch if game is active
+  if (!gameStarted || gameOver || gamePaused) return;
+  
+  // Prevent default behavior to avoid scrolling
+  event.preventDefault();
+  
+  // Only process touch if no active touch or previous touch completed
+  if (!touchState.active) {
+    const touch = event.touches[0];
     
-    // Only process touch if no active touch or previous touch completed
-    if (activeTouchId === null) {
-        activeTouchId = event.touches[0].identifier;
-        
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-        currentTouchX = touchStartX;
-        currentTouchY = touchStartY;
-        touchEndX = touchStartX;
-        touchEndY = touchStartY;
-        isTap = true;
-        isHardDrop = false;
-        isDownwardSwipe = false;
-        lastMoveX = Math.floor(touchStartX / MOVE_THRESHOLD) * MOVE_THRESHOLD;
-        lastMoveY = Math.floor(touchStartY / DOWN_MOVE_THRESHOLD) * DOWN_MOVE_THRESHOLD;
-    }
+    // Initialize touch state
+    touchState.active = true;
+    touchState.identifier = touch.identifier;
+    touchState.startX = touch.clientX;
+    touchState.startY = touch.clientY;
+    touchState.currentX = touch.clientX;
+    touchState.currentY = touch.clientY;
+    touchState.lastMoveX = touch.clientX;
+    touchState.lastMoveY = touch.clientY;
+    touchState.isHardDrop = false;
+    touchState.lastTimestamp = event.timeStamp;
+    touchState.velocityY = 0;
+    touchState.positionHistory = [{
+      x: touch.clientX,
+      y: touch.clientY,
+      timestamp: event.timeStamp
+    }];
+  }
 }
 
+/**
+ * Handle touch move event
+ * @param {TouchEvent} event - Touch event
+ */
 function handleTouchMove(event) {
-    if (!gameStarted || gameOver || gamePaused || activeTouchId === null) return;
-    
-    // Find our active touch
-    let activeTouch = null;
-    for (let i = 0; i < event.touches.length; i++) {
-        if (event.touches[i].identifier === activeTouchId) {
-            activeTouch = event.touches[i];
-            break;
-        }
-    }
-    
-    // If we lost our active touch, exit
-    if (!activeTouch) return;
-    
-    const currentX = activeTouch.clientX;
-    const currentY = activeTouch.clientY;
-    
-    currentTouchX = currentX;
-    currentTouchY = currentY;
-    touchEndX = currentX;
-    touchEndY = currentY;
-    
-    // Determine the type of movement
-    const deltaX = currentX - touchStartX;
-    const deltaY = currentY - touchStartY;
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-    
-    // If the finger moved more than a small threshold, it's not a tap
-    if (absX > 10 || absY > 10) {
-        isTap = false;
-    }
-    
-    // Detect if this is primarily a downward swipe
-    if (deltaY > DOWNWARD_SWIPE_THRESHOLD && absY > absX * 1.2) {
-        isDownwardSwipe = true;
-    }
-    
-    // Handle horizontal movement only if not in a downward swipe
-    if (!isDownwardSwipe && absX > 10) {
-        handleHorizontalMovement(currentX);
-    }
-    
-    // Handle vertical movement if there's enough vertical movement
-    if (deltaY > 10) {
-        // Check for hard drop first - if movement is very fast and primarily downward
-        if (deltaY > HARD_DROP_THRESHOLD && absY > absX * 1.5 && !isHardDrop) {
-            dropPiece();
-            isHardDrop = true;
-            
-            // Immediately end this touch interaction after a hard drop
-            activeTouchId = null;
-        } else {
-            // Otherwise handle gradual downward movement
-            handleVerticalMovement(currentY);
-        }
-    }
+  // Only handle touch if game is active
+  if (!gameStarted || gameOver || gamePaused || !touchState.active) return;
+  
+  // Prevent default behavior to avoid scrolling
+  event.preventDefault();
+  
+  // Find our active touch
+  const touch = findActiveTouch(event.touches);
+  if (!touch) return;
+  
+  // Update current position
+  touchState.currentX = touch.clientX;
+  touchState.currentY = touch.clientY;
+  
+  // Add to position history for velocity calculation
+  touchState.positionHistory.push({
+    x: touch.clientX,
+    y: touch.clientY,
+    timestamp: event.timeStamp
+  });
+  
+  // Keep history size limited
+  if (touchState.positionHistory.length > TOUCH_CONFIG.VELOCITY_SAMPLE_SIZE) {
+    touchState.positionHistory.shift();
+  }
+  
+  // Calculate vertical velocity
+  calculateVerticalVelocity(event.timeStamp);
+  
+  // Check for hard drop (high vertical velocity)
+  if (!touchState.isHardDrop && touchState.velocityY > TOUCH_CONFIG.HARD_DROP_VELOCITY) {
+    performHardDrop();
+    return;
+  }
+  
+  // Handle horizontal movement if not in hard drop mode
+  if (!touchState.isHardDrop) {
+    handleHorizontalMovement();
+  }
+  
+  // Handle vertical movement if not in hard drop mode
+  if (!touchState.isHardDrop) {
+    handleVerticalMovement();
+  }
 }
 
-function handleHorizontalMovement(currentX) {
-    // Calculate how many movements we should make based on distance
-    const currentBlockX = Math.floor(currentX / MOVE_THRESHOLD) * MOVE_THRESHOLD;
-    
-    if (currentBlockX !== lastMoveX) {
-        // Determine direction and number of movements
-        const moveDirection = currentBlockX > lastMoveX ? 1 : -1;
-        const moveSteps = Math.floor(Math.abs(currentBlockX - lastMoveX) / MOVE_THRESHOLD);
-        
-        // Move the piece the appropriate number of times in the right direction
-        for (let i = 0; i < moveSteps; i++) {
-            movePiece(moveDirection, 0);
-        }
-        
-        // Update last move position
-        lastMoveX = currentBlockX;
-    }
+/**
+ * Calculate vertical velocity based on recent touch history
+ * @param {number} currentTimestamp - Current timestamp
+ */
+function calculateVerticalVelocity(currentTimestamp) {
+  if (touchState.positionHistory.length < 2) return;
+  
+  const oldestPoint = touchState.positionHistory[0];
+  const newestPoint = touchState.positionHistory[touchState.positionHistory.length - 1];
+  
+  const deltaY = newestPoint.y - oldestPoint.y;
+  const deltaTime = newestPoint.timestamp - oldestPoint.timestamp;
+  
+  // Calculate velocity in pixels per millisecond
+  if (deltaTime > 0) {
+    touchState.velocityY = deltaY / deltaTime;
+  }
 }
 
-function handleVerticalMovement(currentY) {
-    // For downward movement, we want a slightly different threshold
-    const currentBlockY = Math.floor(currentY / DOWN_MOVE_THRESHOLD) * DOWN_MOVE_THRESHOLD;
+/**
+ * Handle horizontal movement based on touch position
+ */
+function handleHorizontalMovement() {
+  const deltaX = touchState.currentX - touchState.lastMoveX;
+  
+  // Only move if we've crossed the movement threshold
+  if (Math.abs(deltaX) >= TOUCH_CONFIG.MOVE_THRESHOLD) {
+    // Get direction (-1 for left, 1 for right)
+    const direction = deltaX > 0 ? 1 : -1;
     
-    if (currentBlockY !== lastMoveY && currentBlockY > lastMoveY) {
-        // Calculate number of downward moves
-        const moveSteps = Math.floor((currentBlockY - lastMoveY) / DOWN_MOVE_THRESHOLD);
-        
-        // Move the piece down appropriate number of times
-        for (let i = 0; i < moveSteps; i++) {
-            movePiece(0, -1);
-        }
-        
-        // Update last vertical position
-        lastMoveY = currentBlockY;
-    }
+    // Move the piece
+    movePiece(direction, 0);
+    
+    // Update last position to current
+    touchState.lastMoveX = touchState.currentX;
+  }
 }
 
+/**
+ * Handle vertical movement based on touch position
+ */
+function handleVerticalMovement() {
+  const deltaY = touchState.currentY - touchState.lastMoveY;
+  
+  // Only move down if enough downward movement
+  if (deltaY >= TOUCH_CONFIG.DOWN_THRESHOLD) {
+    // Determine how many downward moves to make
+    const moveCount = Math.floor(deltaY / TOUCH_CONFIG.DOWN_THRESHOLD);
+    
+    for (let i = 0; i < moveCount; i++) {
+      movePiece(0, -1);
+    }
+    
+    // Update last position, accounting for the movement we made
+    touchState.lastMoveY += moveCount * TOUCH_CONFIG.DOWN_THRESHOLD;
+  }
+}
+
+/**
+ * Perform a hard drop
+ */
+function performHardDrop() {
+  touchState.isHardDrop = true;
+  dropPiece();
+  
+  // Vibrate device if supported (tactile feedback)
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(50);
+  }
+}
+
+/**
+ * Handle touch end event
+ * @param {TouchEvent} event - Touch event
+ */
 function handleTouchEnd(event) {
-    if (!gameStarted || gameOver || gamePaused) return;
-    
-    // Check if our active touch has ended
-    let touchFound = false;
-    for (let i = 0; i < event.touches.length; i++) {
-        if (event.touches[i].identifier === activeTouchId) {
-            touchFound = true;
-            break;
-        }
-    }
-    
-    // If our touch has ended, process the final action
-    if (!touchFound) {
-        const deltaX = touchEndX - touchStartX;
-        const deltaY = touchEndY - touchStartY;
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
-        
-        // Detect tap (for rotation)
-        if (isTap) {
-            rotatePiece();
-        }
-        // Handle hard drop if not already processed and it's a significant downward swipe
-        else if (deltaY > HARD_DROP_THRESHOLD && absY > absX && !isHardDrop) {
-            dropPiece();
-        }
-        // Otherwise handle a final horizontal movement if needed
-        else if (!isDownwardSwipe && absX > MIN_SWIPE_DISTANCE && absX > absY * 0.7) {
-            if (deltaX > 0) {
-                // Swipe right
-                movePiece(1, 0);
-            } else {
-                // Swipe left
-                movePiece(-1, 0);
-            }
-        }
-        
-        // Reset active touch
-        activeTouchId = null;
-    }
+  // Only handle touch if game is active
+  if (!gameStarted || gameOver || gamePaused || !touchState.active) return;
+  
+  // Check if our active touch has ended
+  const touch = findActiveTouch(event.changedTouches);
+  if (!touch) return;
+  
+  // Calculate if this was a tap (small movement, short duration)
+  const deltaX = Math.abs(touchState.currentX - touchState.startX);
+  const deltaY = Math.abs(touchState.currentY - touchState.startY);
+  const duration = event.timeStamp - touchState.lastTimestamp;
+  
+  const isTap = (deltaX < TOUCH_CONFIG.TAP_THRESHOLD && 
+                 deltaY < TOUCH_CONFIG.TAP_THRESHOLD &&
+                 duration < TOUCH_CONFIG.TAP_DURATION);
+  
+  // Handle tap for rotation
+  if (isTap) {
+    rotatePiece();
+  }
+  
+  // Reset touch state
+  touchState.active = false;
+  touchState.identifier = null;
 }
 
-// Add this to the init function to initialize touch controls
-window.addEventListener('load', function() {
-    // This will be called after the original init function
-    initTouchControls();
-});
+/**
+ * Find the active touch in a TouchList
+ * @param {TouchList} touches - The list of touches to search
+ * @return {Touch|null} - The active touch or null if not found
+ */
+function findActiveTouch(touches) {
+  for (let i = 0; i < touches.length; i++) {
+    if (touches[i].identifier === touchState.identifier) {
+      return touches[i];
+    }
+  }
+  return null;
+}
+
+// Initialize touch controls when the page loads
+window.addEventListener('load', initTouchControls);

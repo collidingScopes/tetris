@@ -839,7 +839,7 @@ function createThreeBorder() {
     color: 0xFFFFFF, // White
     transparent: true,
     opacity: 0.8,
-    linewidth: 5,
+    linewidth: 6,
   });
   
   // Create slightly smaller inner border
