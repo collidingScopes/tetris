@@ -138,6 +138,10 @@ function init() {
     clearInterval(gameLoop);
     gameLoop = null;
   }
+
+  // Initialize pooled geometries and materials
+  blockGeometryPool.init();
+  materialCache.init();
   
   // Set up FPS monitoring
   const fpsCounter = {
@@ -162,9 +166,7 @@ function init() {
           
           // Reduce rendering resolution
           renderer.setPixelRatio(0.7);
-          
-          // Simplify ghost blocks (reduce opacity)
-          materialCache.ghostMaterial.opacity = 0.05;
+
         }
       }
     }
@@ -239,7 +241,7 @@ const materialCache = {
     this.ghostMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x888888, 
       transparent: true, 
-      opacity: 0.10,
+      opacity: 0.20,
     });
   },
   getBlockMaterial(color) {
