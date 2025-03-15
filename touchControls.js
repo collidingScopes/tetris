@@ -94,12 +94,22 @@ function handleTouchStart(event) {
  * Handle touch move event
  * @param {TouchEvent} event - Touch event
  */
+let lastTouchMoveTime = 0;
+const TOUCH_THROTTLE_MS = 16; // ~60fps
+
 function handleTouchMove(event) {
   // Only handle touch if game is active
   if (!gameStarted || gameOver || gamePaused || !touchState.active) return;
   
   // Prevent default behavior to avoid scrolling
   event.preventDefault();
+  
+  // Throttle touch processing to improve performance
+  const now = performance.now();
+  if (now - lastTouchMoveTime < TOUCH_THROTTLE_MS) {
+    return; // Skip this update if it's too soon
+  }
+  lastTouchMoveTime = now;
   
   // Find our active touch
   const touch = findActiveTouch(event.touches);
@@ -109,20 +119,24 @@ function handleTouchMove(event) {
   touchState.currentX = touch.clientX;
   touchState.currentY = touch.clientY;
   
-  // Add to position history for velocity calculation
-  touchState.positionHistory.push({
-    x: touch.clientX,
-    y: touch.clientY,
-    timestamp: event.timeStamp
-  });
-  
-  // Keep history size limited
-  if (touchState.positionHistory.length > TOUCH_CONFIG.VELOCITY_SAMPLE_SIZE) {
-    touchState.positionHistory.shift();
+  // Limit history size to improve performance
+  // Only add entry every few updates
+  if (touchState.positionHistory.length === 0 || 
+      now - touchState.positionHistory[touchState.positionHistory.length - 1].timestamp > 50) {
+    touchState.positionHistory.push({
+      x: touch.clientX,
+      y: touch.clientY,
+      timestamp: now
+    });
+    
+    // Keep history size limited
+    if (touchState.positionHistory.length > TOUCH_CONFIG.VELOCITY_SAMPLE_SIZE) {
+      touchState.positionHistory.shift();
+    }
+    
+    // Calculate vertical velocity
+    calculateVerticalVelocity(now);
   }
-  
-  // Calculate vertical velocity
-  calculateVerticalVelocity(event.timeStamp);
   
   // Check for hard drop (high vertical velocity)
   if (!touchState.isHardDrop && touchState.velocityY > TOUCH_CONFIG.HARD_DROP_VELOCITY) {

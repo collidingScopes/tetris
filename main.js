@@ -61,6 +61,13 @@ let nextPieceCamera = null;
 function init() {
   // Initialize audio first
   initAudio();
+
+  // Initialize object pooling and material caching (from performance improvements)
+  initPerformanceMode();
+  
+  // Initialize performance monitoring
+  let lastUpdateTime = 0;
+  let gameLoopId = null;
   
   // Load high score from localStorage with fallback
   try {
@@ -104,6 +111,7 @@ function init() {
 
   // Create game board grid
   createGrid();
+  createThreeBorder();
 
   // Create pause button
   createPauseButton();
@@ -120,9 +128,215 @@ function init() {
   
   // Initialize touch controls for mobile
   initTouchControls();
+    
+  // Add document visibility handling
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  // ======= PERFORMANCE OPTIMIZATIONS =======
+  
+  // Initialize pooled geometries and materials
+  blockGeometryPool.init();
+  materialCache.init();
+  
+  // Apply mobile-specific optimizations
+  if (isMobileDevice()) {
+    console.log("Applying mobile optimizations");
+    
+    // Lower resolution for mobile
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
+    
+    // Simpler lighting for mobile
+    scene.children.forEach(child => {
+      if (child.isLight && !(child.isAmbientLight)) {
+        child.intensity *= 0.7; // Reduce non-ambient light intensity
+      }
+    });
+    
+    // Add touch-event throttling
+    let lastTouchMoveTime = 0;
+    const TOUCH_THROTTLE_MS = 16; // ~60fps
+    const originalHandleTouchMove = handleTouchMove;
+    
+    handleTouchMove = function(event) {
+      // Apply throttling
+      const now = performance.now();
+      if (now - lastTouchMoveTime < TOUCH_THROTTLE_MS) {
+        return; // Skip this update if it's too soon
+      }
+      lastTouchMoveTime = now;
+      
+      // Call original handler with throttling
+      originalHandleTouchMove(event);
+    };
+    
+    // Debounce resize events
+    const originalHandleResize = handleResize;
+    let resizeTimeout;
+    
+    handleResize = function() {
+      // Debounce resize events which can be very frequent
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        originalHandleResize();
+      }, 250); // Only handle resize after 250ms of inactivity
+    };
+  }
+  
+  // Replace interval-based game loop with requestAnimationFrame
+  // Remove any existing interval
+  if (gameLoop) {
+    clearInterval(gameLoop);
+    gameLoop = null;
+  }
+  
+  // Set up FPS monitoring
+  const fpsCounter = {
+    frameCount: 0,
+    lastCheck: 0,
+    fps: 60,
+    lowPerformanceMode: false,
+    
+    update(timestamp) {
+      this.frameCount++;
+      
+      // Calculate FPS every second
+      if (timestamp - this.lastCheck >= 1000) {
+        this.fps = this.frameCount;
+        this.frameCount = 0;
+        this.lastCheck = timestamp;
+        
+        // Check if we need to adjust performance settings
+        if (this.fps < 40 && !this.lowPerformanceMode) {
+          this.lowPerformanceMode = true;
+          console.log("Enabling low performance mode, FPS:", this.fps);
+          
+          // Reduce rendering resolution
+          renderer.setPixelRatio(0.7);
+          
+          // Simplify ghost blocks (reduce opacity)
+          materialCache.ghostMaterial.opacity = 0.15;
+        }
+      }
+    }
+  };
+  
+  // Enhanced animation function with game loop integrated
+  function enhancedAnimate(timestamp) {
+    gameLoopId = requestAnimationFrame(enhancedAnimate);
+    
+    // Update FPS counter
+    fpsCounter.update(timestamp);
+    
+    // Render the game scene
+    renderer.render(scene, camera);
+    
+    // Skip game logic if game is not running
+    if (!gameStarted || gameOver || gamePaused) return;
+    
+    // Calculate time since last update
+    if (!lastUpdateTime) lastUpdateTime = timestamp;
+    const elapsed = timestamp - lastUpdateTime;
+    
+    // Update game state if enough time has passed
+    if (elapsed >= gameSpeed) {
+      update();
+      lastUpdateTime = timestamp;
+    }
+    
+    // Perform periodic memory cleanup
+    if (timestamp % 30000 < 20) { // Every ~30 seconds
+      renderer.renderLists.dispose();
+    }
+  }
+  
+  // Start the animation loop (which now includes game updates)
+  gameLoopId = requestAnimationFrame(enhancedAnimate);
+}
 
-  // Start animation loop
-  animate();
+// Object pooling for block geometry and materials
+const blockGeometryPool = {
+  geometry: null,
+  borderGeometry: null,
+  init() {
+    this.geometry = new THREE.BoxGeometry(BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95);
+    this.borderGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+  },
+  getGeometry() {
+    return this.geometry;
+  },
+  getBorderGeometry() {
+    return this.borderGeometry;
+  }
+};
+
+// Material caching to reduce object creation
+const materialCache = {
+  blockMaterials: {},
+  borderMaterial: null,
+  ghostMaterial: null,
+  init() {
+    // Create shared border material
+    this.borderMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xcccccc, 
+      wireframe: true,
+      transparent: true,
+      opacity: 0.3
+    });
+    
+    // Create ghost material
+    this.ghostMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x888888, 
+      transparent: true, 
+      opacity: 0.25
+    });
+  },
+  getBlockMaterial(color) {
+    // Cache materials by color
+    if (!this.blockMaterials[color]) {
+      this.blockMaterials[color] = new THREE.MeshPhongMaterial({ color: color });
+    }
+    return this.blockMaterials[color];
+  },
+  getBorderMaterial() {
+    return this.borderMaterial;
+  },
+  getGhostMaterial() {
+    return this.ghostMaterial;
+  }
+};
+
+// Helper function for visibility changes
+function handleVisibilityChange() {
+  if (document.hidden) {
+    // Page is not visible, pause the game to save resources
+    if (gameStarted && !gameOver && !gamePaused) {
+      // Auto-pause when switching away
+      gamePaused = true;
+      
+      // Save state of pause button
+      const pauseButton = document.getElementById('pause-button').querySelector('button');
+      pauseButton.textContent = '▶️';
+      
+      // Show pause overlay if it doesn't exist
+      if (!document.getElementById('pause-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'pause-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '50%';
+        overlay.style.left = '50%';
+        overlay.style.transform = 'translate(-50%, -50%)';
+        overlay.style.background = 'rgba(0,0,0,0.7)';
+        overlay.style.padding = '20px';
+        overlay.style.borderRadius = '10px';
+        overlay.style.color = 'white';
+        overlay.style.fontSize = '24px';
+        overlay.style.fontWeight = 'bold';
+        overlay.style.zIndex = '90';
+        overlay.textContent = 'PAUSED';
+        document.getElementById('game-container').appendChild(overlay);
+      }
+    }
+  }
 }
 
 // Start the game
@@ -292,48 +506,54 @@ function generateNextPiece() {
 
 // Reset game state
 function resetGame() {
-    // Clear the board
-    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
-    
-    // Clear all blocks from the scene
-    blocks.forEach(block => scene.remove(block));
-    blocks = [];
-    
-    // Clear ghost blocks
-    ghostBlocks.forEach(block => scene.remove(block));
-    ghostBlocks = [];
-    
-    // Reset variables
-    score = 0;
-    // Don't reset level if it was selected by user
-    if (!gameStarted) {
-        level = 1;
-        gameSpeed = initialGameSpeed;
+  // Clear the board
+  board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+  
+  // Clear all blocks from the scene
+  blocks.forEach(block => {
+    scene.remove(block);
+    // Properly dispose of geometries and materials (if not shared)
+    if (block.children) {
+      block.children.forEach(child => {
+        if (child.geometry && !child.geometry.isShared) child.geometry.dispose();
+        if (child.material && !child.material.isShared) child.material.dispose();
+      });
     }
-    gameOver = false;
-    
-    // Update UI
-    document.getElementById('score').textContent = score;
-    document.getElementById('level').textContent = level;
-    document.getElementById('game-over').style.display = 'none';
-    
-    // Restart game loop if needed
-    clearInterval(gameLoop);
-    gameLoop = setInterval(update, gameSpeed);
-    
-    // First, generate a random piece for the preview window
-    const shapeIndex = Math.floor(Math.random() * SHAPES.length);
-    nextPiece = {
-        shape: SHAPES[shapeIndex],
-        color: COLORS[shapeIndex]
-    };
-    
-    // Update the preview window
-    renderNextPiecePreview();
-    
-    // Then spawn the first piece (which will take the piece from preview
-    // and generate a new preview piece)
-    spawnNewPiece();
+  });
+  blocks = [];
+  
+  // Clear ghost blocks
+  ghostBlocks.forEach(block => scene.remove(block));
+  ghostBlocks = [];
+  
+  // Reset variables
+  score = 0;
+  if (!gameStarted) {
+    level = 1;
+    gameSpeed = initialGameSpeed;
+  }
+  gameOver = false;
+  lastUpdateTime = 0; // Reset time for RAF-based game loop
+  
+  // Update UI
+  document.getElementById('score').textContent = score;
+  document.getElementById('level').textContent = level;
+  document.getElementById('game-over').style.display = 'none';
+  
+  // No need to reset interval as we're using requestAnimationFrame
+  
+  // First, generate a random piece for the preview window
+  const shapeIndex = Math.floor(Math.random() * SHAPES.length);
+  nextPiece = {
+    shape: SHAPES[shapeIndex],
+    color: COLORS[shapeIndex]
+  };
+  
+  // Update the preview window
+  renderNextPiecePreview();
+  
+  // Then spawn the first piece
+  spawnNewPiece();
 }
 
 // Create a new Tetromino piece
@@ -416,98 +636,98 @@ function renderPiece() {
 
 // Create a block at the given position
 function createBlock(x, y, color, isPiece = false) {
-    // Create a group to hold both the main block and its border
-    const blockGroup = new THREE.Group();
-    
-    // Main block (slightly smaller to allow for border)
-    const geometry = new THREE.BoxGeometry(BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95);
-    const material = new THREE.MeshPhongMaterial({ color: color });
-    const cube = new THREE.Mesh(geometry, material);
-    
-    // Create a slightly larger wire frame for the border
-    const borderGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-    const borderMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0xcccccc, 
-        wireframe: true,
-        transparent: true,
-        opacity: 0.3
-    });
-    const border = new THREE.Mesh(borderGeometry, borderMaterial);
-    
-    // Add both to the group
-    blockGroup.add(cube);
-    blockGroup.add(border);
-    
-    // Position the group
-    blockGroup.position.set(x + BLOCK_SIZE / 2, y + BLOCK_SIZE / 2, 0);
-    
-    // Add custom data for tracking
-    blockGroup.userData = { x, y, color, isPiece };
-    
-    // Add to scene and blocks array
-    scene.add(blockGroup);
-    blocks.push(blockGroup);
-    
-    return blockGroup;
+  // Create a group to hold both the main block and its border
+  const blockGroup = new THREE.Group();
+  
+  // Main block (using pooled geometry and cached materials)
+  const cube = new THREE.Mesh(
+    blockGeometryPool.getGeometry(),
+    materialCache.getBlockMaterial(color)
+  );
+  
+  // Border using pooled geometry and shared material
+  const border = new THREE.Mesh(
+    blockGeometryPool.getBorderGeometry(),
+    materialCache.getBorderMaterial()
+  );
+  
+  // Add both to the group
+  blockGroup.add(cube);
+  blockGroup.add(border);
+  
+  // Position the group
+  blockGroup.position.set(x + BLOCK_SIZE / 2, y + BLOCK_SIZE / 2, 0);
+  
+  // Add custom data for tracking
+  blockGroup.userData = { x, y, color, isPiece };
+  
+  // Add to scene and blocks array
+  scene.add(blockGroup);
+  blocks.push(blockGroup);
+  
+  return blockGroup;
+}
+
+function cleanupBlock(block) {
+  scene.remove(block);
+  
+  // In pooled mode, we don't need to dispose geometries or shared materials
+  // Just remove references to the block
+  return null;
 }
 
 // Create a ghost piece to show where the current piece will land
 function createGhostPiece() {
-    // Calculate drop position
-    let dropY = currentPosition.y;
-    while (isValidMove(currentPosition.x, dropY - 1, currentPiece.shape)) {
-        dropY--;
+  // Calculate drop position
+  let dropY = currentPosition.y;
+  while (isValidMove(currentPosition.x, dropY - 1, currentPiece.shape)) {
+    dropY--;
+  }
+  
+  // Don't show ghost if it would be at the same position as the current piece
+  if (dropY === currentPosition.y) {
+    return;
+  }
+  
+  // Clear old ghost blocks
+  ghostBlocks.forEach(block => scene.remove(block));
+  ghostBlocks = [];
+  
+  // Create ghost blocks using shared material from cache
+  for (let y = 0; y < currentPiece.shape.length; y++) {
+    for (let x = 0; x < currentPiece.shape[y].length; x++) {
+      if (currentPiece.shape[y][x]) {
+        const blockX = currentPosition.x + x;
+        const blockY = dropY + y;
+        
+        // Create a group for ghost piece with border
+        const ghostGroup = new THREE.Group();
+        
+        // Main ghost block with shared geometry and material
+        const cube = new THREE.Mesh(
+          blockGeometryPool.getGeometry(),
+          materialCache.getGhostMaterial()
+        );
+        
+        // Border with shared geometry and material
+        const border = new THREE.Mesh(
+          blockGeometryPool.getBorderGeometry(),
+          materialCache.getBorderMaterial()
+        );
+        
+        // Add both to the group
+        ghostGroup.add(cube);
+        ghostGroup.add(border);
+        
+        // Position the group
+        ghostGroup.position.set(blockX + BLOCK_SIZE / 2, blockY + BLOCK_SIZE / 2, 0);
+        
+        // Add to scene and ghost blocks array
+        scene.add(ghostGroup);
+        ghostBlocks.push(ghostGroup);
+      }
     }
-    
-    // Don't show ghost if it would be at the same position as the current piece
-    if (dropY === currentPosition.y) {
-        return;
-    }
-    
-    // Create ghost blocks
-    const ghostColor = 0x888888; // Gray color
-    const ghostMaterial = new THREE.MeshPhongMaterial({ 
-        color: ghostColor, 
-        transparent: true, 
-        opacity: 0.25,
-    });
-    
-    for (let y = 0; y < currentPiece.shape.length; y++) {
-        for (let x = 0; x < currentPiece.shape[y].length; x++) {
-            if (currentPiece.shape[y][x]) {
-                const blockX = currentPosition.x + x;
-                const blockY = dropY + y;
-                
-                // Create a group for ghost piece with border
-                const ghostGroup = new THREE.Group();
-                
-                // Main ghost block
-                const geometry = new THREE.BoxGeometry(BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95);
-                const cube = new THREE.Mesh(geometry, ghostMaterial);
-                
-                // Create a slightly larger wire frame for the border
-                const borderGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                const borderMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xcccccc, 
-                    wireframe: true,
-                    transparent: true,
-                    opacity: 0.1
-                });
-                const border = new THREE.Mesh(borderGeometry, borderMaterial);
-                
-                // Add both to the group
-                ghostGroup.add(cube);
-                ghostGroup.add(border);
-                
-                // Position the group
-                ghostGroup.position.set(blockX + BLOCK_SIZE / 2, blockY + BLOCK_SIZE / 2, 0);
-                
-                // Add to scene and ghost blocks array
-                scene.add(ghostGroup);
-                ghostBlocks.push(ghostGroup);
-            }
-        }
-    }
+  }
 }
 
 // Check if the move is valid
@@ -637,77 +857,77 @@ function dropPiece() {
 
 // Check for completed lines
 function checkLines() {
-    let linesCleared = 0;
+  let linesCleared = 0;
+  
+  for (let y = 0; y < BOARD_HEIGHT; y++) {
+    let complete = true;
     
-    for (let y = 0; y < BOARD_HEIGHT; y++) {
-        let complete = true;
-        
-        for (let x = 0; x < BOARD_WIDTH; x++) {
-            if (!board[y][x]) {
-                complete = false;
-                break;
-            }
-        }
-        
-        if (complete) {
-            // Clear the line
-            for (let y2 = y; y2 < BOARD_HEIGHT - 1; y2++) {
-                board[y2] = [...board[y2 + 1]];
-            }
-            board[BOARD_HEIGHT - 1] = Array(BOARD_WIDTH).fill(0);
-            
-            // Remove blocks for this line
-            const blocksToRemove = blocks.filter(block => !block.userData.isPiece && block.userData.y === y);
-            blocksToRemove.forEach(block => {
-                scene.remove(block);
-                blocks = blocks.filter(b => b !== block);
-            });
-            
-            // Update positions of blocks above this line
-            blocks.forEach(block => {
-                if (!block.userData.isPiece && block.userData.y > y) {
-                    block.userData.y--;
-                    block.position.y -= BLOCK_SIZE;
-                }
-            });
-            
-            linesCleared++;
-            y--; // Check the same line again
-        }
+    for (let x = 0; x < BOARD_WIDTH; x++) {
+      if (!board[y][x]) {
+        complete = false;
+        break;
+      }
     }
-    
-    // Update score
-    if (linesCleared > 0) {
-        // Play clear line sound and pass the number of lines cleared
-        clearLineSound(linesCleared);
-        
-        const points = [0, 40, 100, 250, 600][linesCleared] * level;
-        score += points;
-        document.getElementById('score').textContent = score;
-        
-        // Update high score if needed and localStorage is available
-        try {
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('tetrisHighScore', highScore);
-                document.getElementById('high-score').textContent = highScore;
-            }
-        } catch (e) {
-            // Skip high score update if localStorage is not available
+  
+    if (complete) {
+      // Clear the line
+      for (let y2 = y; y2 < BOARD_HEIGHT - 1; y2++) {
+        board[y2] = [...board[y2 + 1]];
+      }
+      board[BOARD_HEIGHT - 1] = Array(BOARD_WIDTH).fill(0);
+      
+      // Remove blocks for this line with proper cleanup
+      const blocksToRemove = blocks.filter(block => !block.userData.isPiece && block.userData.y === y);
+      blocksToRemove.forEach(block => {
+        cleanupBlock(block);
+      });
+      blocks = blocks.filter(b => !blocksToRemove.includes(b));
+      
+      // Update positions of blocks above this line
+      blocks.forEach(block => {
+        if (!block.userData.isPiece && block.userData.y > y) {
+          block.userData.y--;
+          block.position.y -= BLOCK_SIZE;
         }
-        
-        // Increase level every 10 lines
-        const newLevel = Math.floor(score / 1000) + 1;
-        if (newLevel > level) {
-            level = newLevel;
-            document.getElementById('level').textContent = level;
-            
-            // Speed up the game
-            gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
-            clearInterval(gameLoop);
-            gameLoop = setInterval(update, gameSpeed);
-        }
+      });
+      
+      linesCleared++;
+      y--; // Check the same line again
     }
+  }
+  
+  // Update score
+  if (linesCleared > 0) {
+      // Play clear line sound and pass the number of lines cleared
+      clearLineSound(linesCleared);
+      
+      const points = [0, 40, 100, 250, 600][linesCleared] * level;
+      score += points;
+      document.getElementById('score').textContent = score;
+      
+      // Update high score if needed and localStorage is available
+      try {
+          if (score > highScore) {
+              highScore = score;
+              localStorage.setItem('tetrisHighScore', highScore);
+              document.getElementById('high-score').textContent = highScore;
+          }
+      } catch (e) {
+          // Skip high score update if localStorage is not available
+      }
+      
+      // Increase level every 10 lines
+      const newLevel = Math.floor(score / 1000) + 1;
+      if (newLevel > level) {
+          level = newLevel;
+          document.getElementById('level').textContent = level;
+          
+          // Speed up the game
+          gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+          clearInterval(gameLoop);
+          gameLoop = setInterval(update, gameSpeed);
+      }
+  }
 }
 
 // Main game update function
@@ -822,9 +1042,28 @@ function togglePause() {
 }
 
 // Animation loop
-function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);    
+let lastUpdateTime = 0;
+let gameLoopId = null;
+
+// Replace the main animate function with this improved version
+function animate(timestamp) {
+  gameLoopId = requestAnimationFrame(animate);
+  
+  // Render the game scene
+  renderer.render(scene, camera);
+  
+  // Skip game logic if game is not running
+  if (!gameStarted || gameOver || gamePaused) return;
+  
+  // Calculate time since last update
+  if (!lastUpdateTime) lastUpdateTime = timestamp;
+  const elapsed = timestamp - lastUpdateTime;
+  
+  // Update game state if enough time has passed
+  if (elapsed >= gameSpeed) {
+    update();
+    lastUpdateTime = timestamp;
+  }
 }
 
 // Function to create a border in the Three.js scene
@@ -867,24 +1106,6 @@ function createThreeBorder() {
   scene.add(innerBorderLines);
 
 }
-
-// Add this to the existing init function after creating the grid
-function addThreeBorderToInit() {
-  // This needs to modify the original init function
-  const originalInit = init;
-  
-  // Replace the init function with our enhanced version
-  init = function() {
-    // Call the original init function
-    originalInit();
-    
-    // Add the Three.js border
-    const borders = createThreeBorder();
-  };
-}
-
-// Execute our modification
-addThreeBorderToInit();
 
 // Start the game when the page loads
 let mobileDeviceFlag = isMobileDevice();
