@@ -55,11 +55,61 @@ function initTouchControls() {
  * @param {HTMLElement} element - The element to attach touch listeners to
  */
 function setupTouchListeners(element) {
-  element.addEventListener('touchstart', handleTouchStart, { passive: false });
-  element.addEventListener('touchmove', handleTouchMove, { passive: false });
-  element.addEventListener('touchend', handleTouchEnd, { passive: false });
+  // Only add touch listeners to the game canvas, not UI elements
+  element.addEventListener('touchstart', function(event) {
+    // Check if the touch is on a UI element (button, select, etc.)
+    let target = event.target;
+    while (target) {
+      if (target.tagName === 'BUTTON' || 
+          target.tagName === 'SELECT' || 
+          target.classList.contains('button')) {
+        // Don't handle game controls for UI elements
+        return;
+      }
+      target = target.parentElement;
+    }
+    
+    // Call the original handler for game area touches
+    handleTouchStart(event);
+  }, { passive: false });
+  
+  element.addEventListener('touchmove', function(event) {
+    // Check if the touch is on a UI element
+    let target = event.target;
+    while (target) {
+      if (target.tagName === 'BUTTON' || 
+          target.tagName === 'SELECT' || 
+          target.classList.contains('button')) {
+        // Don't handle game controls for UI elements
+        return;
+      }
+      target = target.parentElement;
+    }
+    
+    // Call the original handler for game area touches
+    handleTouchMove(event);
+  }, { passive: false });
+  
+  element.addEventListener('touchend', function(event) {
+    // Check if the touch is on a UI element
+    let target = event.target;
+    while (target) {
+      if (target.tagName === 'BUTTON' || 
+          target.tagName === 'SELECT' || 
+          target.classList.contains('button')) {
+        // Don't handle game controls for UI elements
+        return;
+      }
+      target = target.parentElement;
+    }
+    
+    // Call the original handler for game area touches
+    handleTouchEnd(event);
+  }, { passive: false });
+  
   element.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-  console.log("Touch listeners added to game canvas");
+  
+  console.log("Touch listeners added to game canvas with UI element protection");
 }
 
 /**
