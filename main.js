@@ -821,5 +821,64 @@ function animate() {
     renderer.render(scene, camera);    
 }
 
+// Function to create a border in the Three.js scene
+function createThreeBorder() {
+
+  // Calculate the actual board dimensions
+  const boardWidth = BOARD_WIDTH;
+  const boardHeight = BOARD_HEIGHT;
+  
+  // Create an inner border with a different color for contrast
+  const innerBorderMaterial = new THREE.LineBasicMaterial({ 
+    color: 0xFFFFFF, // White
+    transparent: true,
+    opacity: 0.5,
+    linewidth: 3,
+  });
+  
+  // Create slightly smaller inner border
+  const innerBorderGeometry = new THREE.BufferGeometry().setFromPoints([
+    // Bottom edge
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(boardWidth, 0, 0),
+    
+    // Right edge
+    new THREE.Vector3(boardWidth, 0, 0),
+    new THREE.Vector3(boardWidth, boardHeight, 0),
+    
+    // Top edge
+    new THREE.Vector3(boardWidth, boardHeight, 0),
+    new THREE.Vector3(0, boardHeight, 0),
+    
+    // Left edge
+    new THREE.Vector3(0, boardHeight, 0),
+    new THREE.Vector3(0, 0, 0)
+  ]);
+  
+  const innerBorderLines = new THREE.LineSegments(innerBorderGeometry, innerBorderMaterial);
+  
+  // Add the inner border to the scene
+  scene.add(innerBorderLines);
+
+}
+
+// Add this to the existing init function after creating the grid
+function addThreeBorderToInit() {
+  // This needs to modify the original init function
+  const originalInit = init;
+  
+  // Replace the init function with our enhanced version
+  init = function() {
+    // Call the original init function
+    originalInit();
+    
+    // Add the Three.js border
+    const borders = createThreeBorder();
+  };
+}
+
+// Execute our modification
+addThreeBorderToInit();
+
 // Start the game when the page loads
 window.onload = init;
