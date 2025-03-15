@@ -1,7 +1,5 @@
 // Initialize the performance mode based on device capability
-function initPerformanceMode() {
-  // Detect if we're on a mobile device
-  const isMobile = isMobileDevice();
+function initPerformanceMode(isMobile, isLowPerformance) {
   
   // Initialize pooled geometries and materials
   blockGeometryPool.init();

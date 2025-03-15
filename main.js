@@ -62,12 +62,17 @@ function init() {
   // Initialize audio first
   initAudio();
 
-  // Initialize object pooling and material caching (from performance improvements)
-  initPerformanceMode();
+  // Get device information from deviceUtils
+  const isMobile = deviceUtils.isMobile();
+  const isLowPerformance = deviceUtils.isLowPerformanceDevice();
   
-  // Initialize performance monitoring
-  let lastUpdateTime = 0;
-  let gameLoopId = null;
+  console.log("Device detection - Mobile:", isMobile, "Low Performance:", isLowPerformance);
+  
+  // Initialize UI adjustments based on device
+  adaptUIForDevice();
+  
+  // Initialize performance mode with device information
+  initPerformanceMode(isMobile, isLowPerformance);
   
   // Load high score from localStorage with fallback
   try {
@@ -125,64 +130,16 @@ function init() {
   
   // Initialize next piece preview
   initNextPiecePreview();
-  
-  // Initialize touch controls for mobile
-  initTouchControls();
     
   // Add document visibility handling
   document.addEventListener('visibilitychange', handleVisibilityChange);
   
-  // ======= PERFORMANCE OPTIMIZATIONS =======
-  
+  /*
   // Initialize pooled geometries and materials
   blockGeometryPool.init();
   materialCache.init();
-  
-  // Apply mobile-specific optimizations
-  if (isMobileDevice()) {
-    console.log("Applying mobile optimizations");
-    
-    // Lower resolution for mobile
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
-    
-    // Simpler lighting for mobile
-    scene.children.forEach(child => {
-      if (child.isLight && !(child.isAmbientLight)) {
-        child.intensity *= 0.7; // Reduce non-ambient light intensity
-      }
-    });
-    
-    // Add touch-event throttling
-    let lastTouchMoveTime = 0;
-    const TOUCH_THROTTLE_MS = 16; // ~60fps
-    const originalHandleTouchMove = handleTouchMove;
-    
-    handleTouchMove = function(event) {
-      // Apply throttling
-      const now = performance.now();
-      if (now - lastTouchMoveTime < TOUCH_THROTTLE_MS) {
-        return; // Skip this update if it's too soon
-      }
-      lastTouchMoveTime = now;
-      
-      // Call original handler with throttling
-      originalHandleTouchMove(event);
-    };
-    
-    // Debounce resize events
-    const originalHandleResize = handleResize;
-    let resizeTimeout;
-    
-    handleResize = function() {
-      // Debounce resize events which can be very frequent
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        originalHandleResize();
-      }, 250); // Only handle resize after 250ms of inactivity
-    };
-  }
-  
-  // Replace interval-based game loop with requestAnimationFrame
+  */
+
   // Remove any existing interval
   if (gameLoop) {
     clearInterval(gameLoop);
@@ -214,7 +171,7 @@ function init() {
           renderer.setPixelRatio(0.7);
           
           // Simplify ghost blocks (reduce opacity)
-          materialCache.ghostMaterial.opacity = 0.15;
+          materialCache.ghostMaterial.opacity = 0.05;
         }
       }
     }
@@ -287,7 +244,7 @@ const materialCache = {
     this.ghostMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x888888, 
       transparent: true, 
-      opacity: 0.25
+      opacity: 0.10,
     });
   },
   getBlockMaterial(color) {
@@ -373,13 +330,16 @@ function initNextPiecePreview() {
         canvas: canvas,
         antialias: true 
     });
-    if(mobileDeviceFlag){
+    
+    // Use deviceUtils for device detection
+    if(deviceUtils.isMobile()){
       console.log("small next piece preview window");
       nextPieceRenderer.setSize(50, 50);
     } else {
       console.log("large next piece preview window");
       nextPieceRenderer.setSize(100, 100);
     }
+    
     nextPieceRenderer.setClearColor(0x111111);
     
     // Create scene
@@ -710,15 +670,17 @@ function createGhostPiece() {
           materialCache.getGhostMaterial()
         );
         
+        /*
         // Border with shared geometry and material
         const border = new THREE.Mesh(
           blockGeometryPool.getBorderGeometry(),
           materialCache.getBorderMaterial()
         );
+        */
         
         // Add both to the group
         ghostGroup.add(cube);
-        ghostGroup.add(border);
+        //ghostGroup.add(border);
         
         // Position the group
         ghostGroup.position.set(blockX + BLOCK_SIZE / 2, blockY + BLOCK_SIZE / 2, 0);
@@ -1109,6 +1071,4 @@ function createThreeBorder() {
 }
 
 // Start the game when the page loads
-let mobileDeviceFlag = isMobileDevice();
-console.log("mobile device: "+mobileDeviceFlag);
-window.onload = init;
+window.addEventListener('load', init);
