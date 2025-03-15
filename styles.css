@@ -211,7 +211,7 @@ h1 {
 /* Make buttons bigger on mobile for easier touch */
 @media (max-width: 768px) {
   #info-container {
-    font-size: 18px;
+    font-size: 14px;
   }
   
   #controls {

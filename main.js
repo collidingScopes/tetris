@@ -864,8 +864,6 @@ function checkLines() {
           gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
           cancelAnimationFrame(gameLoopId);
           gameLoopId = requestAnimationFrame(animate);
-          //clearInterval(gameLoop);
-          //gameLoop = setInterval(update, gameSpeed);
       }
   }
 }
@@ -940,7 +938,6 @@ function togglePause() {
         document.getElementById("pause-overlay").classList.remove("hidden");
         
     } else {
-        //gameLoop = setInterval(update, gameSpeed);
         gameLoopId = requestAnimationFrame(animate);
         document.getElementById("pause-overlay").classList.add("hidden");
     }
@@ -949,7 +946,6 @@ function togglePause() {
 function playGame() {
         
   if (gamePaused) {
-    //gameLoop = setInterval(update, gameSpeed);
     gameLoopId = requestAnimationFrame(animate);
     document.getElementById("pause-overlay").classList.add("hidden");
     gamePaused = false  
@@ -962,29 +958,6 @@ function playGame() {
 // Animation loop
 let lastUpdateTime = 0;
 let gameLoopId = null;
-
-// Replace the main animate function with this improved version
-/*
-function animate(timestamp) {
-  gameLoopId = requestAnimationFrame(animate);
-  
-  // Render the game scene
-  renderer.render(scene, camera);
-  
-  // Skip game logic if game is not running
-  if (!gameStarted || gameOver || gamePaused) return;
-  
-  // Calculate time since last update
-  if (!lastUpdateTime) lastUpdateTime = timestamp;
-  const elapsed = timestamp - lastUpdateTime;
-  
-  // Update game state if enough time has passed
-  if (elapsed >= gameSpeed) {
-    update();
-    lastUpdateTime = timestamp;
-  }
-}
-*/
 
 // Function to create a border in the Three.js scene
 function createThreeBorder() {
