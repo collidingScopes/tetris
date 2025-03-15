@@ -69,6 +69,10 @@ canvas {
   border-radius: 5px;
 }
 
+#play-button {
+  font-size: 26px;
+}
+
 #mute-button {
   font-size: 20px;
   background: var(--primary-color);
@@ -94,6 +98,11 @@ canvas {
   text-align: center;
   z-index: 100;
   display: none;
+  border: 3px solid white;
+
+  -webkit-box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
+  -moz-box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
+  box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
 }
 #start-screen {
   position: absolute;
@@ -106,6 +115,10 @@ canvas {
   text-align: center;
   z-index: 200;
   width: 400px;
+
+  -webkit-box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
+  -moz-box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
+  box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
 }
 #next-piece-container {
   position: absolute;
@@ -151,6 +164,10 @@ canvas {
   background: var(--primary-color);
 }
 
+#start-button, #restart-button1, #restart-button2 {
+  background: var(--secondary-color);
+}
+
 #pause-overlay {
   position: absolute;
   top: 50%;
@@ -163,6 +180,10 @@ canvas {
   font-size: 20px;
   z-index: 90;
   text-align: center;
+
+  -webkit-box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
+  -moz-box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
+  box-shadow: 0px 0px 11px 5px rgba(216,212,255,0.3);
 }
 
 

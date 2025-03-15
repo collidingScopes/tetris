@@ -1,10 +1,10 @@
 /*
 To do:
 Glossy 3D buttons
+Frutiger Aero styling for the whole page
 Some animations
 Background music?
 Change level-up logic to be based on lines instead of 1000 score point increments
-Frutiger Aero styling for the whole page
 Play sound upon level up / locking the block
 Fix piece inversion in the next piece window
 Change button stying / colors
