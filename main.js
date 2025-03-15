@@ -45,7 +45,7 @@ let score = 0;
 let highScore = 0;
 let level = 1;
 let initialGameSpeed = 1100;
-let speedProgression = 100;
+let speedProgression = 95;
 let gameSpeed = initialGameSpeed; // milliseconds
 let gameOver = false;
 let gameStarted = false;
@@ -86,7 +86,7 @@ function init() {
 
   // Create camera
   const aspectRatio = window.innerWidth / window.innerHeight;
-  const viewSize = 25;
+  const viewSize = 22;
   camera = new THREE.OrthographicCamera(
       -aspectRatio * viewSize / 2,
       aspectRatio * viewSize / 2,
@@ -112,7 +112,6 @@ function init() {
   scene.add(directionalLight);
 
   // Initialize performance mode with device information
-  initPerformanceMode(isMobile, isLowPerformance);
 
   // Create game board grid
   createGrid();
@@ -199,6 +198,8 @@ function init() {
       renderer.renderLists.dispose();
     }
   }
+
+  //initPerformanceMode(isMobile, isLowPerformance);
   
   // Start the animation loop (which now includes game updates)
   gameLoopId = requestAnimationFrame(enhancedAnimate);
