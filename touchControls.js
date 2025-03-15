@@ -30,18 +30,36 @@ const TOUCH_CONFIG = {
  * Initialize touch controls
  */
 function initTouchControls() {
-  const gameContainer = document.getElementById('game-container');
+  // IMPORTANT FIX: Add touch events to the renderer's canvas, not the whole game container
+  // This allows buttons and UI elements to still receive touch events
   
-  // Add touch event listeners
-  gameContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
-  gameContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
-  gameContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
-  gameContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  let canvas;
+  
+  // Wait for the renderer to be initialized and its canvas to be added to the DOM
+  const checkForCanvas = setInterval(() => {
+    canvas = document.querySelector('#game-container canvas');
+    if (canvas) {
+      clearInterval(checkForCanvas);
+      setupTouchListeners(canvas);
+    }
+  }, 100);
   
   // Listen for new piece spawns to reset touch interaction
   document.addEventListener('newPieceSpawned', resetTouchInteraction);
   
   console.log("Touch controls initialized");
+}
+
+/**
+ * Set up touch event listeners on the provided element
+ * @param {HTMLElement} element - The element to attach touch listeners to
+ */
+function setupTouchListeners(element) {
+  element.addEventListener('touchstart', handleTouchStart, { passive: false });
+  element.addEventListener('touchmove', handleTouchMove, { passive: false });
+  element.addEventListener('touchend', handleTouchEnd, { passive: false });
+  element.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  console.log("Touch listeners added to game canvas");
 }
 
 /**
@@ -63,7 +81,7 @@ function handleTouchStart(event) {
   // Only handle touch if game is active
   if (!gameStarted || gameOver || gamePaused) return;
   
-  // Prevent default behavior to avoid scrolling
+  // Prevent default behavior to avoid scrolling, but only for game canvas
   event.preventDefault();
   
   // Only process touch if no active touch or previous touch completed
@@ -101,7 +119,7 @@ function handleTouchMove(event) {
   // Only handle touch if game is active
   if (!gameStarted || gameOver || gamePaused || !touchState.active) return;
   
-  // Prevent default behavior to avoid scrolling
+  // Prevent default behavior to avoid scrolling, but only for game canvas
   event.preventDefault();
   
   // Throttle touch processing to improve performance
