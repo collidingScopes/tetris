@@ -82,9 +82,6 @@ function initPerformanceMode() {
       }
     });
     
-    // Throttle touch events
-    setupTouchEventThrottling();
-    
     // Optimize resize event handling
     setupResizeEventThrottling();
     
@@ -200,65 +197,6 @@ function updateNextPiecePreviewForLowPerformance() {
     
     // Render once with no antialiasing
     nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
-  };
-}
-
-// Function to set up touch event throttling
-function setupTouchEventThrottling() {
-  // Add throttling to touch move events
-  let lastTouchMoveTime = 0;
-  const TOUCH_THROTTLE_MS = 16; // ~60fps
-  
-  const originalHandleTouchMove = handleTouchMove;
-  handleTouchMove = function(event) {
-    // Prevent default to stop scrolling
-    event.preventDefault();
-    
-    // Only handle touch if game is active
-    if (!gameStarted || gameOver || gamePaused || !touchState.active) return;
-    
-    // Throttle processing
-    const now = performance.now();
-    if (now - lastTouchMoveTime < TOUCH_THROTTLE_MS) {
-      return; // Skip this update if it's too soon
-    }
-    lastTouchMoveTime = now;
-    
-    // Call the original handler with throttling applied
-    originalHandleTouchMove(event);
-  };
-  
-  // Also optimize the touch position history tracking
-  const originalHandleTouchStart = handleTouchStart;
-  handleTouchStart = function(event) {
-    // Always prevent default for touch start to avoid UI issues
-    event.preventDefault();
-    
-    // Only process if game is active
-    if (!gameStarted || gameOver || gamePaused) return;
-    
-    // Simplified touch state tracking
-    if (!touchState.active) {
-      const touch = event.touches[0];
-      
-      // Initialize with minimal tracking data
-      touchState.active = true;
-      touchState.identifier = touch.identifier;
-      touchState.startX = touch.clientX;
-      touchState.startY = touch.clientY;
-      touchState.currentX = touch.clientX;
-      touchState.currentY = touch.clientY;
-      touchState.lastMoveX = touch.clientX;
-      touchState.lastMoveY = touch.clientY;
-      touchState.isHardDrop = false;
-      
-      // Use minimal history for performance
-      touchState.positionHistory = [{
-        x: touch.clientX,
-        y: touch.clientY,
-        timestamp: performance.now()
-      }];
-    }
   };
 }
 
