@@ -113,8 +113,6 @@ function init() {
   directionalLight.position.set(10, 20, 30);
   scene.add(directionalLight);
 
-  // Initialize performance mode with device information
-
   // Create game board grid
   createGrid();
   createThreeBorder();
@@ -192,8 +190,6 @@ function init() {
       renderer.renderLists.dispose();
     }
   }
-
-  //initPerformanceMode(isMobile, isLowPerformance);
   
   // Start the animation loop (which now includes game updates)
   gameLoopId = requestAnimationFrame(enhancedAnimate);
