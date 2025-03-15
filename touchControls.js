@@ -1,10 +1,14 @@
-/**
- * Enhanced Touch Controls for Tetris
- * Replaces touchControls.js with improved event handling
- */
+/*
+Instructions:
+touchControls should only be available on iPad / mobile devices
+Player should be able to move the tetromino block by dragging left/right/downwards
+Swipping downwards with high velocity should trigger a hard drop of the block
+All UI buttons (start game, restart game, mute button, pause button) should not be blocked by the touch interaction -- the user should be able to click those buttons
+*/
 
+// Initialize touch controls
 function initTouchControls() {
-  // Only initialize if this is a mobile device
+  // Only initialize on mobile/tablet devices
   if (!deviceUtils.isMobile()) {
     console.log("Not a mobile device, skipping touch controls");
     return;
@@ -12,88 +16,13 @@ function initTouchControls() {
   
   console.log("Mobile device detected, initializing touch controls");
   
-  // Add a class to the body to indicate touch mode
+  // Add touch mode class to the body
   document.body.classList.add('touch-mode');
   
-  // Try to get the canvas immediately
-  let canvas = document.querySelector('#game-container canvas');
-  
-  if (canvas) {
-    setupTouchListeners(canvas);
-    console.log("Touch controls initialized immediately on canvas");
-  } else {
-    // Set up a mutation observer to watch for the canvas being added
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.addedNodes) {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeName === 'CANVAS') {
-              setupTouchListeners(node);
-              console.log("Touch controls initialized via observer on canvas");
-              observer.disconnect();
-            }
-          });
-        }
-      });
-    });
-    
-    // Start observing the game container
-    observer.observe(document.getElementById('game-container'), { 
-      childList: true, 
-      subtree: true 
-    });
-    
-    // Fallback timeout approach as well
-    setTimeout(() => {
-      canvas = document.querySelector('#game-container canvas');
-      if (canvas && !canvas.hasAttribute('touch-initialized')) {
-        setupTouchListeners(canvas);
-        console.log("Touch controls initialized via timeout fallback");
-      }
-    }, 1000);
-  }
-  
-  // Listen for new piece spawns to reset touch state
-  document.addEventListener('newPieceSpawned', function() {
-    console.log("New piece spawned, touch state reset");
-    // Reset state will be managed in the touch state object
-  });
-}
-
-function setupTouchListeners(canvas) {
-  // Mark the canvas as having touch initialized to prevent duplicate setup
-  canvas.setAttribute('touch-initialized', 'true');
-  
-  // Simple touch state with only essential properties
-  const touchState = {
-    startX: 0,
-    startY: 0,
-    startTime: 0,
-    lastMoveX: 0,
-    lastMoveY: 0,
-    isTouchActive: false,
-    reset: function() {
-      this.isTouchActive = false;
-    }
-  };
-  
-  // Constants for gesture detection - REDUCED THRESHOLDS for better responsiveness
-  const TOUCH = {
-    MOVE_THRESHOLD: 15,    // Reduced from 30 - Min pixels for horizontal movement
-    DOWN_THRESHOLD: 20,    // Reduced from 40 - Min pixels for downward movement
-    TAP_THRESHOLD: 20,     // Increased slightly - Max movement for a tap
-    TAP_DURATION: 300,     // Max duration for a tap (ms)
-    HARD_DROP_MIN_Y: 60,   // Reduced from 100 - Min pixels for hard drop swipe
-    HARD_DROP_SPEED: 0.5   // Reduced from 0.7 - Min pixels/ms for hard drop
-  };
-  
-  // Log initialization
-  console.log("Setting up touch handlers with thresholds:", TOUCH);
-  
-  // Instead of attaching to canvas only, attach to game container for wider area
+  // Find the game container
   const gameContainer = document.getElementById('game-container');
   
-  // Create an overlay div that will receive all touch events
+  // Create a touch overlay that will capture touch events
   const touchOverlay = document.createElement('div');
   touchOverlay.id = 'touch-overlay';
   touchOverlay.style.position = 'absolute';
@@ -105,207 +34,228 @@ function setupTouchListeners(canvas) {
   touchOverlay.style.touchAction = 'none'; // Disable browser handling of touch
   gameContainer.appendChild(touchOverlay);
   
-  // We'll use the overlay for touch events instead of the canvas
-  const touchElement = touchOverlay;
+  // Set up touch handlers on the overlay
+  setupTouchHandlers(touchOverlay);
   
+  // Listen for new piece spawns to reset touch state
+  document.addEventListener('newPieceSpawned', resetTouchState);
+  
+  console.log("Touch controls initialized");
+}
+
+// Touch state tracking object
+const touchState = {
+  active: false,
+  startX: 0,
+  startY: 0,
+  lastX: 0,
+  lastY: 0,
+  startTime: 0,
+  
+  // Reset the touch state
+  reset: function() {
+    this.active = false;
+  }
+};
+
+// Constants for touch control sensitivity
+const TOUCH_CONTROLS = {
+  MOVE_THRESHOLD: 15,    // Minimum pixels needed for horizontal movement
+  DOWN_THRESHOLD: 15,    // Minimum pixels needed for downward movement
+  TAP_THRESHOLD: 20,     // Maximum movement allowed for a tap gesture
+  TAP_DURATION: 250,     // Maximum duration (ms) for a tap
+  HARD_DROP_MIN_Y: 50,   // Minimum vertical distance for hard drop
+  HARD_DROP_VELOCITY: 0.6 // Pixels/ms velocity threshold for hard drop
+};
+
+// Setup touch event handlers
+function setupTouchHandlers(element) {
   // Touch start handler
-  touchElement.addEventListener('touchstart', function(event) {
-    // Ignore if game is not running
-    if (!gameStarted || gameOver || gamePaused) return;
-    
-    // Skip if touching UI elements
-    if (isUIElement(event.target)) return;
-    
-    // Important: Prevent default to stop scrolling
-    event.preventDefault();
-    
-    const touch = event.touches[0];
-    
-    // Initialize touch state
-    touchState.startX = touch.clientX;
-    touchState.startY = touch.clientY;
-    touchState.lastMoveX = touch.clientX;
-    touchState.lastMoveY = touch.clientY;
-    touchState.startTime = Date.now();
-    touchState.isTouchActive = true;
-    
-    console.log("Touch start:", touchState.startX, touchState.startY);
-  }, { passive: false }); // Must be non-passive to call preventDefault
+  element.addEventListener('touchstart', handleTouchStart, { passive: false });
   
-  // Touch move handler with reduced throttling
-  let lastMoveTime = 0;
+  // Touch move handler
+  element.addEventListener('touchmove', handleTouchMove, { passive: false });
   
-  touchElement.addEventListener('touchmove', function(event) {
-    // Ignore if game is not running or touch is not active
-    if (!gameStarted || gameOver || gamePaused || !touchState.isTouchActive) return;
+  // Touch end handler
+  element.addEventListener('touchend', handleTouchEnd, { passive: false });
+  
+  // Touch cancel handler
+  element.addEventListener('touchcancel', resetTouchState, { passive: true });
+}
+
+// Handle touch start event
+function handleTouchStart(event) {
+  // Ignore if game isn't active
+  if (!gameStarted || gameOver || gamePaused) return;
+  
+  // Allow UI elements to receive clicks
+  if (isUIElement(event.target)) return;
+  
+  // Prevent default behavior to avoid scrolling
+  event.preventDefault();
+  
+  const touch = event.touches[0];
+  
+  // Store initial touch position and time
+  touchState.active = true;
+  touchState.startX = touch.clientX;
+  touchState.startY = touch.clientY;
+  touchState.lastX = touch.clientX;
+  touchState.lastY = touch.clientY;
+  touchState.startTime = Date.now();
+}
+
+// Handle touch move event
+function handleTouchMove(event) {
+  // Ignore if touch isn't active or game isn't running
+  if (!touchState.active || !gameStarted || gameOver || gamePaused) return;
+  
+  // Allow UI elements to receive normal touch events
+  if (isUIElement(event.target)) return;
+  
+  // Prevent default behavior
+  event.preventDefault();
+  
+  const touch = event.touches[0];
+  const currentX = touch.clientX;
+  const currentY = touch.clientY;
+  
+  // Calculate horizontal and vertical movement since last processed position
+  const deltaX = currentX - touchState.lastX;
+  const deltaY = currentY - touchState.lastY;
+  
+  // Handle horizontal movement (left/right)
+  if (Math.abs(deltaX) >= TOUCH_CONTROLS.MOVE_THRESHOLD) {
+    const direction = deltaX > 0 ? 1 : -1; // 1 for right, -1 for left
     
-    // Skip if touching UI elements
-    if (isUIElement(event.target)) return;
-    
-    // Critical: Prevent default to stop scrolling
-    event.preventDefault();
-    
-    // Apply light throttling (60+ fps)
-    const now = Date.now();
-    if (now - lastMoveTime < 10) return; // Process at ~100fps for smoother feeling
-    lastMoveTime = now;
-    
-    const touch = event.touches[0];
-    
-    // Calculate deltas
-    const currentDeltaX = touch.clientX - touchState.lastMoveX;
-    const currentDeltaY = touch.clientY - touchState.lastMoveY;
-    const totalDeltaY = touch.clientY - touchState.startY;
-    
-    // Debug logging for significant movements
-    if (Math.abs(currentDeltaX) > 5 || Math.abs(currentDeltaY) > 5) {
-      console.log("Touch move - deltaX:", currentDeltaX, "deltaY:", currentDeltaY);
-    }
-    
-    // ---- HORIZONTAL MOVEMENT (LEFT/RIGHT) ----
-    if (Math.abs(currentDeltaX) >= TOUCH.MOVE_THRESHOLD) {
-      // Move left or right
-      const direction = currentDeltaX > 0 ? 1 : -1;
-      movePiece(direction, 0);
+    // Try to move the piece
+    if (movePiece(direction, 0)) {
+      // Update last position after successful move
+      touchState.lastX = currentX;
       
-      // Update last position for horizontal
-      touchState.lastMoveX = touch.clientX;
-      
-      // Provide very light haptic feedback if available
+      // Provide haptic feedback if available
       if (deviceUtils.supportsVibration()) {
         navigator.vibrate(10);
       }
     }
-    
-    // ---- VERTICAL MOVEMENT (DOWN) ----
-    if (currentDeltaY >= TOUCH.DOWN_THRESHOLD) {
-      // Move down
-      movePiece(0, -1);
-      
-      // Update last position for vertical with smaller increment to allow continuous movement
-      touchState.lastMoveY += TOUCH.DOWN_THRESHOLD * 0.8;
-    }
-    
-    // ---- HARD DROP DETECTION ----
-    const duration = now - touchState.startTime;
-    
-    // Fast downward swipe detection (high velocity + minimum distance)
-    if (duration > 50 && totalDeltaY > TOUCH.HARD_DROP_MIN_Y) {
-      const velocity = totalDeltaY / duration;
-      if (velocity > TOUCH.HARD_DROP_SPEED) {
-        console.log("Hard drop detected - velocity:", velocity);
-        dropPiece();
-        touchState.isTouchActive = false;
-        
-        // Provide stronger haptic feedback for hard drop
-        if (deviceUtils.supportsVibration()) {
-          navigator.vibrate(50);
-        }
-      }
-    }
-  }, { passive: false }); // Must be non-passive
-  
-  // Touch end handler for tap detection (rotation)
-  touchElement.addEventListener('touchend', function(event) {
-    // Ignore if game is not running or touch is not active
-    if (!gameStarted || gameOver || gamePaused || !touchState.isTouchActive) return;
-    
-    // Skip if touching UI elements
-    if (isUIElement(event.target)) return;
-    
-    // Get the last touch position
-    const touch = event.changedTouches[0];
-    const deltaX = Math.abs(touch.clientX - touchState.startX);
-    const deltaY = Math.abs(touch.clientY - touchState.startY);
-    const duration = Date.now() - touchState.startTime;
-    
-    console.log("Touch end - deltaX:", deltaX, "deltaY:", deltaY, "duration:", duration);
-    
-    // Tap detection for rotation (small movement + short time)
-    if (deltaX < TOUCH.TAP_THRESHOLD && deltaY < TOUCH.TAP_THRESHOLD && duration < TOUCH.TAP_DURATION) {
-      console.log("Tap detected, rotating piece");
-      rotatePiece();
-      
-      // Light haptic feedback for rotation
-      if (deviceUtils.supportsVibration()) {
-        navigator.vibrate(15);
-      }
-    }
-    
-    // Reset touch state
-    touchState.isTouchActive = false;
-  }, { passive: true });
-  
-  // Touch cancel handler
-  touchElement.addEventListener('touchcancel', function() {
-    touchState.isTouchActive = false;
-  }, { passive: true });
-  
-  // Add some additional debug/visual feedback
-  if (deviceUtils.isMobile()) {
-    // Add a visual indicator for touch positions (debug only)
-    /*
-    const touchIndicator = document.createElement('div');
-    touchIndicator.id = 'touch-indicator';
-    touchIndicator.style.position = 'absolute';
-    touchIndicator.style.width = '20px';
-    touchIndicator.style.height = '20px';
-    touchIndicator.style.borderRadius = '50%';
-    touchIndicator.style.background = 'rgba(255,0,0,0.5)';
-    touchIndicator.style.pointerEvents = 'none';
-    touchIndicator.style.zIndex = '999';
-    touchIndicator.style.display = 'none';
-    gameContainer.appendChild(touchIndicator);
-    
-    // Show touch position during debug
-    touchElement.addEventListener('touchmove', function(event) {
-      const touch = event.touches[0];
-      touchIndicator.style.display = 'block';
-      touchIndicator.style.left = (touch.clientX - 10) + 'px';
-      touchIndicator.style.top = (touch.clientY - 10) + 'px';
-    }, { passive: true });
-    
-    touchElement.addEventListener('touchend', function() {
-      touchIndicator.style.display = 'none';
-    }, { passive: true });
-    */
   }
   
-  console.log("Touch listeners successfully set up on game element");
+  // Handle downward movement
+  if (deltaY >= TOUCH_CONTROLS.DOWN_THRESHOLD) {
+    // Try to move the piece down
+    if (movePiece(0, -1)) {
+      // Update last Y position, but only partially to allow continuous movement
+      touchState.lastY += TOUCH_CONTROLS.DOWN_THRESHOLD * 0.8;
+    }
+  }
+  
+  // Check for hard drop - total vertical movement with high velocity
+  const totalDeltaY = currentY - touchState.startY;
+  const duration = Date.now() - touchState.startTime;
+  
+  if (duration > 50 && totalDeltaY > TOUCH_CONTROLS.HARD_DROP_MIN_Y) {
+    const velocity = totalDeltaY / duration;
+    
+    if (velocity >= TOUCH_CONTROLS.HARD_DROP_VELOCITY) {
+      // Execute hard drop
+      dropPiece();
+      
+      // Reset touch state to prevent further actions
+      touchState.active = false;
+      
+      // Stronger haptic feedback for hard drop
+      if (deviceUtils.supportsVibration()) {
+        navigator.vibrate(30);
+      }
+    }
+  }
+}
+
+// Handle touch end event
+function handleTouchEnd(event) {
+  // Ignore if touch isn't active or game isn't running
+  if (!touchState.active || !gameStarted || gameOver || gamePaused) return;
+  
+  // Allow UI elements to receive normal touch events
+  if (isUIElement(event.target)) return;
+  
+  // Prevent default behavior
+  event.preventDefault();
+  
+  const touch = event.changedTouches[0];
+  
+  // Calculate total movement
+  const deltaX = Math.abs(touch.clientX - touchState.startX);
+  const deltaY = Math.abs(touch.clientY - touchState.startY);
+  const duration = Date.now() - touchState.startTime;
+  
+  // Check if this was a tap (small movement + short duration)
+  if (deltaX < TOUCH_CONTROLS.TAP_THRESHOLD && 
+      deltaY < TOUCH_CONTROLS.TAP_THRESHOLD && 
+      duration < TOUCH_CONTROLS.TAP_DURATION) {
+    
+    // Rotate the piece on tap
+    rotatePiece();
+    
+    // Light haptic feedback for rotation
+    if (deviceUtils.supportsVibration()) {
+      navigator.vibrate(15);
+    }
+  }
+  
+  // Reset touch state
+  resetTouchState();
+}
+
+// Reset the touch state
+function resetTouchState() {
+  touchState.active = false;
 }
 
 /**
- * Improved function to check if an element is a UI control
+ * Check if an element is a UI control that should receive normal touch events
+ * @param {Element} element - The element to check
+ * @returns {boolean} - True if the element is a UI control
  */
 function isUIElement(element) {
-  // UI element identifiers
-  const uiSelectors = [
-    '#pause-button', '#mute-button', '#start-button', '#restart-button',
-    '.level-selector', 'button', 'select', '.button'
+  // UI element identifiers (id, class, or tag)
+  const uiElements = [
+    // Buttons
+    'start-button', 'restart-button', 'pause-button', 'mute-button',
+    // Controls
+    'level-selector', 'starting-level', 'restarting-level',
+    // Classes
+    'button'
   ];
   
-  // Check if the element or any parent matches UI selectors
-  let target = element;
-  while (target && target !== document) {
-    // Check tag names first
-    if (['BUTTON', 'SELECT', 'INPUT'].includes(target.tagName)) {
+  // Walk up the DOM tree to check if element or any parent is a UI element
+  let current = element;
+  while (current && current !== document) {
+    // Check element ID
+    if (current.id && uiElements.includes(current.id)) {
       return true;
     }
     
-    // Check all selectors
-    for (const selector of uiSelectors) {
-      if ((selector.startsWith('#') && target.id === selector.substring(1)) ||
-          (selector.startsWith('.') && target.classList.contains(selector.substring(1))) ||
-          (selector === target.tagName.toLowerCase())) {
-        return true;
+    // Check element tag
+    if (['BUTTON', 'SELECT', 'INPUT'].includes(current.tagName)) {
+      return true;
+    }
+    
+    // Check element classes
+    if (current.classList) {
+      for (let i = 0; i < current.classList.length; i++) {
+        if (uiElements.includes(current.classList[i])) {
+          return true;
+        }
       }
     }
     
-    target = target.parentElement;
+    // Move up to parent
+    current = current.parentElement;
   }
   
   return false;
 }
 
-// Initialize touch controls when the page loads if on mobile
+// Initialize touch controls when the page loads
 window.addEventListener('load', initTouchControls);
