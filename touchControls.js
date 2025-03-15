@@ -6,81 +6,154 @@ Swipping downwards with high velocity should trigger a hard drop of the block
 All UI buttons (start game, restart game, mute button, pause button) should not be blocked by the touch interaction -- the user should be able to click those buttons
 */
 
-// Initialize touch controls
-function initTouchControls() {
-  // Only initialize on mobile/tablet devices
-  if (!deviceUtils.isMobile()) {
-    console.log("Not a mobile device, skipping touch controls");
-    return;
-  }
-  
-  console.log("Mobile device detected, initializing touch controls");
-  
-  // Add touch mode class to the body
-  document.body.classList.add('touch-mode');
-  
-  // Find the game container
-  const gameContainer = document.getElementById('game-container');
-  
-  // Create a touch overlay that will capture touch events
-  const touchOverlay = document.createElement('div');
-  touchOverlay.id = 'touch-overlay';
-  touchOverlay.style.position = 'absolute';
-  touchOverlay.style.top = '0';
-  touchOverlay.style.left = '0';
-  touchOverlay.style.width = '100%';
-  touchOverlay.style.height = '100%';
-  touchOverlay.style.zIndex = '50'; // Above the game but below UI elements
-  touchOverlay.style.touchAction = 'none'; // Disable browser handling of touch
-  gameContainer.appendChild(touchOverlay);
-  
-  // Set up touch handlers on the overlay
-  setupTouchHandlers(touchOverlay);
-  
-  // Listen for new piece spawns to reset touch state
-  document.addEventListener('newPieceSpawned', resetTouchState);
-  
-  console.log("Touch controls initialized");
-}
-
-// Touch state tracking object
+// Enhanced touch state tracking object
 const touchState = {
   active: false,
   startX: 0,
   startY: 0,
   lastX: 0,
   lastY: 0,
+  lastMoveX: 0,    // Last position where horizontal move was processed
+  lastMoveY: 0,    // Last position where vertical move was processed
   startTime: 0,
+  movementDirection: null, // 'horizontal', 'vertical', or null
+  lastMoveTime: 0,  // Time of last movement action
   
   // Reset the touch state
   reset: function() {
     this.active = false;
+    this.movementDirection = null;
   }
 };
 
-// Constants for touch control sensitivity
+// Enhanced constants for touch control sensitivity
 const TOUCH_CONTROLS = {
-  MOVE_THRESHOLD: 25,    // Minimum pixels needed for horizontal movement
-  DOWN_THRESHOLD: 15,    // Minimum pixels needed for downward movement
-  TAP_THRESHOLD: 20,     // Maximum movement allowed for a tap gesture
-  TAP_DURATION: 250,     // Maximum duration (ms) for a tap
-  HARD_DROP_MIN_Y: 50,   // Minimum vertical distance for hard drop
-  HARD_DROP_VELOCITY: 0.65 // Pixels/ms velocity threshold for hard drop
+  MOVE_THRESHOLD: 25,            // Base pixels needed for horizontal movement
+  DOWN_THRESHOLD: 15,            // Base pixels needed for downward movement
+  VERTICAL_BIAS_THRESHOLD: 2.5,  // Ratio of vertical to horizontal movement to consider primarily vertical
+  HORIZONTAL_BIAS_THRESHOLD: 2,  // Ratio of horizontal to vertical movement to consider primarily horizontal
+  VERTICAL_MOVE_HORIZONTAL_THRESHOLD: 40, // Increased threshold during vertical swipes
+  DIRECTION_LOCK_DURATION: 150,  // Time in ms to lock in a movement direction
+  TAP_THRESHOLD: 20,             // Maximum movement allowed for a tap gesture
+  TAP_DURATION: 250,             // Maximum duration (ms) for a tap
+  HARD_DROP_MIN_Y: 50,           // Minimum vertical distance for hard drop
+  HARD_DROP_VELOCITY: 0.65,      // Pixels/ms velocity threshold for hard drop
+  MOVE_COOLDOWN: 80              // Minimum time between consecutive move actions
 };
 
-// Setup touch event handlers
-function setupTouchHandlers(element) {
-  // Touch start handler
-  element.addEventListener('touchstart', handleTouchStart, { passive: false });
+// Handle touch move event
+function handleTouchMove(event) {
+  // Ignore if touch isn't active or game isn't running
+  if (!touchState.active || !gameStarted || gameOver || gamePaused) return;
   
-  // Touch move handler
-  element.addEventListener('touchmove', handleTouchMove, { passive: false });
+  // Allow UI elements to receive normal touch events
+  if (isUIElement(event.target)) return;
   
-  // Touch end handler
-  element.addEventListener('touchend', handleTouchEnd, { passive: false });
+  // Prevent default behavior
+  event.preventDefault();
   
-  // Touch cancel handler
-  element.addEventListener('touchcancel', resetTouchState, { passive: true });
+  const touch = event.touches[0];
+  const currentX = touch.clientX;
+  const currentY = touch.clientY;
+  const currentTime = Date.now();
+  
+  // Calculate movement since initial touch
+  const totalDeltaX = currentX - touchState.startX;
+  const totalDeltaY = touchState.startY - currentY; // Invert for easier logic (positive = upward)
+  
+  // Calculate movement since last position
+  const deltaX = currentX - touchState.lastX;
+  const deltaY = touchState.lastY - currentY; // Invert for easier logic (positive = upward)
+  
+  // Determine primary movement direction if not already set
+  if (!touchState.movementDirection) {
+    // Wait for enough movement to determine direction
+    const totalMovement = Math.abs(totalDeltaX) + Math.abs(totalDeltaY);
+    
+    if (totalMovement > 20) { // Minimum movement before locking direction
+      if (Math.abs(totalDeltaY) > Math.abs(totalDeltaX) * TOUCH_CONTROLS.VERTICAL_BIAS_THRESHOLD) {
+        touchState.movementDirection = 'vertical';
+      } else if (Math.abs(totalDeltaX) > Math.abs(totalDeltaY) * TOUCH_CONTROLS.HORIZONTAL_BIAS_THRESHOLD) {
+        touchState.movementDirection = 'horizontal';
+      }
+      
+      // Initialize the last move positions once direction is determined
+      touchState.lastMoveX = currentX;
+      touchState.lastMoveY = currentY;
+    }
+  }
+  
+  // Handle movement based on primary direction
+  const timeSinceLastMove = currentTime - touchState.lastMoveTime;
+  
+  // Process horizontal movement (left/right)
+  if (timeSinceLastMove >= TOUCH_CONTROLS.MOVE_COOLDOWN) {
+    let horizontalThreshold = TOUCH_CONTROLS.MOVE_THRESHOLD;
+    
+    // Use higher threshold for horizontal moves during vertical swipes
+    if (touchState.movementDirection === 'vertical' || 
+        (Math.abs(deltaY) > Math.abs(deltaX) * 1.5)) {
+      horizontalThreshold = TOUCH_CONTROLS.VERTICAL_MOVE_HORIZONTAL_THRESHOLD;
+    }
+    
+    const horizontalMovement = currentX - touchState.lastMoveX;
+    
+    if (Math.abs(horizontalMovement) >= horizontalThreshold) {
+      const direction = horizontalMovement > 0 ? 1 : -1; // 1 for right, -1 for left
+      
+      // Try to move the piece
+      if (movePiece(direction, 0)) {
+        // Update last horizontal move position after successful move
+        touchState.lastMoveX = currentX;
+        touchState.lastMoveTime = currentTime;
+        
+        // Provide haptic feedback if available
+        if (deviceUtils.supportsVibration()) {
+          navigator.vibrate(10);
+        }
+      }
+    }
+  }
+  
+  // Process vertical movement
+  if (timeSinceLastMove >= TOUCH_CONTROLS.MOVE_COOLDOWN/2) { // Allow vertical moves more frequently
+    const verticalMovement = touchState.lastMoveY - currentY; // Inverted delta
+    
+    if (verticalMovement >= TOUCH_CONTROLS.DOWN_THRESHOLD) {
+      // Try to move the piece down
+      if (movePiece(0, -1)) {
+        // Update last Y position, but only partially to allow continuous movement
+        touchState.lastMoveY -= TOUCH_CONTROLS.DOWN_THRESHOLD * 0.8;
+        touchState.lastMoveTime = currentTime;
+      }
+    }
+  }
+  
+  // Always update last position for delta calculations on next move
+  touchState.lastX = currentX;
+  touchState.lastY = currentY;
+  
+  // Check for hard drop - total vertical movement with high velocity
+  if (totalDeltaY < -TOUCH_CONTROLS.HARD_DROP_MIN_Y) { // Using inverted Y, negative means downward
+    const duration = currentTime - touchState.startTime;
+    
+    if (duration > 50) {
+      const velocity = Math.abs(totalDeltaY) / duration;
+      
+      if (velocity >= TOUCH_CONTROLS.HARD_DROP_VELOCITY) {
+        // Execute hard drop
+        dropPiece();
+        
+        // Reset touch state to prevent further actions
+        touchState.active = false;
+        
+        // Stronger haptic feedback for hard drop
+        if (deviceUtils.supportsVibration()) {
+          navigator.vibrate(30);
+        }
+      }
+    }
+  }
 }
 
 // Handle touch start event
@@ -102,73 +175,11 @@ function handleTouchStart(event) {
   touchState.startY = touch.clientY;
   touchState.lastX = touch.clientX;
   touchState.lastY = touch.clientY;
+  touchState.lastMoveX = touch.clientX;
+  touchState.lastMoveY = touch.clientY;
   touchState.startTime = Date.now();
-}
-
-// Handle touch move event
-function handleTouchMove(event) {
-  // Ignore if touch isn't active or game isn't running
-  if (!touchState.active || !gameStarted || gameOver || gamePaused) return;
-  
-  // Allow UI elements to receive normal touch events
-  if (isUIElement(event.target)) return;
-  
-  // Prevent default behavior
-  event.preventDefault();
-  
-  const touch = event.touches[0];
-  const currentX = touch.clientX;
-  const currentY = touch.clientY;
-  
-  // Calculate horizontal and vertical movement since last processed position
-  const deltaX = currentX - touchState.lastX;
-  const deltaY = currentY - touchState.lastY;
-  
-  // Handle horizontal movement (left/right)
-  if (Math.abs(deltaX) >= TOUCH_CONTROLS.MOVE_THRESHOLD) {
-    const direction = deltaX > 0 ? 1 : -1; // 1 for right, -1 for left
-    
-    // Try to move the piece
-    if (movePiece(direction, 0)) {
-      // Update last position after successful move
-      touchState.lastX = currentX;
-      
-      // Provide haptic feedback if available
-      if (deviceUtils.supportsVibration()) {
-        navigator.vibrate(10);
-      }
-    }
-  }
-  
-  // Handle downward movement
-  if (deltaY >= TOUCH_CONTROLS.DOWN_THRESHOLD) {
-    // Try to move the piece down
-    if (movePiece(0, -1)) {
-      // Update last Y position, but only partially to allow continuous movement
-      touchState.lastY += TOUCH_CONTROLS.DOWN_THRESHOLD * 0.8;
-    }
-  }
-  
-  // Check for hard drop - total vertical movement with high velocity
-  const totalDeltaY = currentY - touchState.startY;
-  const duration = Date.now() - touchState.startTime;
-  
-  if (duration > 50 && totalDeltaY > TOUCH_CONTROLS.HARD_DROP_MIN_Y) {
-    const velocity = totalDeltaY / duration;
-    
-    if (velocity >= TOUCH_CONTROLS.HARD_DROP_VELOCITY) {
-      // Execute hard drop
-      dropPiece();
-      
-      // Reset touch state to prevent further actions
-      touchState.active = false;
-      
-      // Stronger haptic feedback for hard drop
-      if (deviceUtils.supportsVibration()) {
-        navigator.vibrate(30);
-      }
-    }
-  }
+  touchState.lastMoveTime = 0;
+  touchState.movementDirection = null;
 }
 
 // Handle touch end event
@@ -209,53 +220,20 @@ function handleTouchEnd(event) {
 
 // Reset the touch state
 function resetTouchState() {
-  touchState.active = false;
+  touchState.reset();
 }
 
-/**
- * Check if an element is a UI control that should receive normal touch events
- * @param {Element} element - The element to check
- * @returns {boolean} - True if the element is a UI control
- */
-function isUIElement(element) {
-  // UI element identifiers (id, class, or tag)
-  const uiElements = [
-    // Buttons
-    'start-button', 'restart-button', 'pause-button', 'mute-button',
-    // Controls
-    'level-selector', 'starting-level', 'restarting-level',
-    // Classes
-    'button'
-  ];
+// Setup touch event handlers
+function setupTouchHandlers(element) {
+  // Touch start handler
+  element.addEventListener('touchstart', handleTouchStart, { passive: false });
   
-  // Walk up the DOM tree to check if element or any parent is a UI element
-  let current = element;
-  while (current && current !== document) {
-    // Check element ID
-    if (current.id && uiElements.includes(current.id)) {
-      return true;
-    }
-    
-    // Check element tag
-    if (['BUTTON', 'SELECT', 'INPUT'].includes(current.tagName)) {
-      return true;
-    }
-    
-    // Check element classes
-    if (current.classList) {
-      for (let i = 0; i < current.classList.length; i++) {
-        if (uiElements.includes(current.classList[i])) {
-          return true;
-        }
-      }
-    }
-    
-    // Move up to parent
-    current = current.parentElement;
-  }
+  // Touch move handler
+  element.addEventListener('touchmove', handleTouchMove, { passive: false });
   
-  return false;
+  // Touch end handler
+  element.addEventListener('touchend', handleTouchEnd, { passive: false });
+  
+  // Touch cancel handler
+  element.addEventListener('touchcancel', resetTouchState, { passive: true });
 }
-
-// Initialize touch controls when the page loads
-window.addEventListener('load', initTouchControls);
