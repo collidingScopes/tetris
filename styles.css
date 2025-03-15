@@ -274,3 +274,20 @@ h1 {
     font-size: 18px;
   }
 }
+
+/* Ensure canvas captures touch events properly */
+#game-container canvas {
+  position: absolute;
+  z-index: 10; /* Above background, below UI elements */
+  touch-action: none; /* Prevents browser handling of touch gestures */
+  user-select: none; /* Prevents text selection */
+  -webkit-tap-highlight-color: transparent; /* Removes tap highlight on iOS */
+}
+
+/* Make sure UI elements appear above the canvas */
+#score-container, #high-score-container, #level-container, 
+#audio-control, #pause-button, #start-screen,
+#game-over, #next-piece-container, #pause-overlay {
+  z-index: 100;
+  position: relative;
+}

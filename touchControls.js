@@ -47,32 +47,34 @@ const TOUCH_CONTROLS = {
  * @returns {boolean} True if the element is a UI control
  */
 function isUIElement(element) {
-  // Check for common UI elements
+  // If no element is provided, it's not a UI element
   if (!element) return false;
   
-  // Check if the element is a button or has button class
-  if (element.tagName === 'BUTTON' || element.classList.contains('button')) {
+  // Check for direct matches on element
+  if (
+    element.tagName === 'BUTTON' || 
+    element.tagName === 'SELECT' ||
+    element.classList.contains('button') ||
+    element.id === 'start-button' ||
+    element.id === 'restart-button1' ||
+    element.id === 'restart-button2' ||
+    element.id === 'play-button' ||
+    element.id === 'mute-button' ||
+    element.id === 'starting-level' ||
+    element.id === 'restarting-level1' ||
+    element.id === 'restarting-level2'
+  ) {
     return true;
   }
   
-  // Check for specific UI element IDs
-  const uiElementIds = [
-    'start-button', 'restart-button1', 'restart-button2', 'pause-button',
-    'mute-button', 'play-button', 'starting-level', 'restarting-level1', 
-    'restarting-level2', 'pause-overlay', 'start-screen', 'game-over'
-  ];
-  
-  if (uiElementIds.includes(element.id)) {
+  // Check for parent elements that are UI elements
+  const parent = element.closest('#start-screen, #game-over, #pause-overlay, #controls, .level-selector, #pause-button, #audio-control');
+  if (parent) {
     return true;
   }
   
-  // Check if it's inside a UI container
-  return (
-    element.closest('.level-selector') !== null ||
-    element.closest('#start-screen') !== null ||
-    element.closest('#game-over') !== null ||
-    element.closest('#pause-overlay') !== null
-  );
+  // It's not a UI element
+  return false;
 }
 
 // Handle touch move event
@@ -271,3 +273,58 @@ function setupTouchHandlers(element) {
   // Touch cancel handler
   element.addEventListener('touchcancel', resetTouchState, { passive: true });
 }
+
+// Initialize touch controls when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+  // Only initialize touch controls on mobile devices
+  if (deviceUtils.isMobile()) {
+    console.log("Initializing touch controls for mobile device");
+    
+    // Get the game container or canvas element to attach touch events to
+    const gameContainer = document.getElementById('game-container');
+    const canvas = gameContainer.querySelector('canvas');
+    
+    // Setup touch handlers on the appropriate element
+    // We want to attach to the canvas (renderer.domElement) since that's where the game is drawn
+    if (canvas) {
+      setupTouchHandlers(canvas);
+      console.log("Touch controls attached to canvas");
+    } else {
+      // Fallback to game container if canvas isn't available yet
+      setupTouchHandlers(gameContainer);
+      console.log("Touch controls attached to game container");
+      
+      // We'll also setup touch handlers on the canvas once it's created
+      // This is a safety check in case the canvas is created after this code runs
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.addedNodes) {
+            mutation.addedNodes.forEach(function(node) {
+              if (node.nodeName === 'CANVAS' && !node.hasAttribute('data-touch-initialized')) {
+                setupTouchHandlers(node);
+                node.setAttribute('data-touch-initialized', 'true');
+                console.log("Touch controls attached to dynamically created canvas");
+              }
+            });
+          }
+        });
+      });
+      
+      observer.observe(gameContainer, { childList: true });
+    }
+  } else {
+    console.log("Not initializing touch controls for non-mobile device");
+  }
+});
+
+// Also initialize when a new piece spawns to ensure controls are active
+document.addEventListener('newPieceSpawned', function() {
+  if (deviceUtils.isMobile() && !document.querySelector('[data-touch-initialized]')) {
+    const canvas = document.querySelector('#game-container canvas');
+    if (canvas && !canvas.hasAttribute('data-touch-initialized')) {
+      setupTouchHandlers(canvas);
+      canvas.setAttribute('data-touch-initialized', 'true');
+      console.log("Touch controls attached after new piece spawned");
+    }
+  }
+});
