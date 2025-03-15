@@ -102,6 +102,8 @@ function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById('game-container').appendChild(renderer.domElement);
+  
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
 
   // Add lights
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -158,16 +160,6 @@ function init() {
         this.fps = this.frameCount;
         this.frameCount = 0;
         this.lastCheck = timestamp;
-        
-        // Check if we need to adjust performance settings
-        if (this.fps < 40 && !this.lowPerformanceMode) {
-          this.lowPerformanceMode = true;
-          console.log("Enabling low performance mode, FPS:", this.fps);
-          
-          // Reduce rendering resolution
-          renderer.setPixelRatio(0.7);
-
-        }
       }
     }
   };
@@ -497,9 +489,7 @@ function resetGame() {
   document.getElementById('score').textContent = score;
   document.getElementById('level').textContent = level;
   document.getElementById('game-over').style.display = 'none';
-  
-  // No need to reset interval as we're using requestAnimationFrame
-  
+    
   // First, generate a random piece for the preview window
   const shapeIndex = Math.floor(Math.random() * SHAPES.length);
   nextPiece = {
@@ -666,18 +656,9 @@ function createGhostPiece() {
           blockGeometryPool.getGeometry(),
           materialCache.getGhostMaterial()
         );
-        
-        /*
-        // Border with shared geometry and material
-        const border = new THREE.Mesh(
-          blockGeometryPool.getBorderGeometry(),
-          materialCache.getBorderMaterial()
-        );
-        */
-        
+
         // Add both to the group
         ghostGroup.add(cube);
-        //ghostGroup.add(border);
         
         // Position the group
         ghostGroup.position.set(blockX + BLOCK_SIZE / 2, blockY + BLOCK_SIZE / 2, 0);
