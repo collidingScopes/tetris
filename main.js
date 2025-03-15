@@ -3,7 +3,7 @@ To do:
 Glossy 3D buttons
 Some animations
 Background music?
-Audit the score / level / speed progression calcs
+Change level-up logic to be based on lines instead of 1000 score point increments
 Frutiger Aero styling for the whole page
 Play sound upon level up / locking the block
 Fix piece inversion in the next piece window
@@ -45,6 +45,7 @@ let score = 0;
 let highScore = 0;
 let level = 1;
 let initialGameSpeed = 1100;
+let minimumSpeed = 150;
 //let speedProgression = 95;
 let speedMultiplier = 0.9; //game becomes 10% faster each level
 let gameSpeed = initialGameSpeed; // milliseconds
@@ -271,7 +272,7 @@ function startGame() {
   // Get the selected starting level
   const selectedLevel = parseInt(document.getElementById('starting-level').value);
   level = selectedLevel;
-  gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
+  gameSpeed = Math.max(minimumSpeed, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
   
   resetGame();
 }
@@ -284,7 +285,7 @@ function restartGame1(){
   // Get the selected starting level
   const selectedLevel = parseInt(document.getElementById('restarting-level1').value);
   level = selectedLevel;
-  gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
+  gameSpeed = Math.max(minimumSpeed, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
   resetGame();
 }
 
@@ -295,7 +296,7 @@ function restartGame2(){
   // Get the selected starting level
   const selectedLevel = parseInt(document.getElementById('restarting-level2').value);
   level = selectedLevel;
-  gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
+  gameSpeed = Math.max(minimumSpeed, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
   resetGame();
 }
 
