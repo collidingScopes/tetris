@@ -9,6 +9,11 @@
 </head>
 <body>
     <div id="game-container">
+
+        <div id="pause-button">
+          <button class="button">⏯️</button>
+        </div>
+
         <div id="score-container">Score: <span id="score">0</span></div>
         <div id="high-score-container">High Score: <span id="high-score">0</span></div>
         <div id="level-container">Level: <span id="level">1</span></div>
@@ -62,13 +67,34 @@
             <div>NEXT PIECE</div>
             <canvas id="next-piece-canvas"></canvas>
         </div>
+
+        <div id="pause-overlay" class="hidden">
+          <p>PAUSED</p>
+          <div class="level-selector">
+            <label for="restarting-level1">Starting Level: </label>
+            <select id="restarting-level1">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+            </select>
+          </div>
+          <button id="restart-button1" class="button">Play Again</button>
+        </div>
+
         <div id="game-over">
             <h1>Game Over</h1>
             <p>Your score: <span id="final-score">0</span></p>
             <p>High score: <span id="final-high-score">0</span></p>
             <div class="level-selector">
-              <label for="restarting-level">Starting Level: </label>
-              <select id="restarting-level">
+              <label for="restarting-level2">Starting Level: </label>
+              <select id="restarting-level2">
                   <option value="1">1</option>
                   <option value="2">2</option>
                   <option value="3">3</option>
@@ -81,7 +107,7 @@
                   <option value="10">10</option>
               </select>
             </div>
-            <button id="restart-button" class="button">Play Again</button>
+            <button id="restart-button2" class="button">New Game</button>
         </div>
     </div>
 

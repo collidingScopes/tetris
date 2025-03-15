@@ -74,7 +74,7 @@ function init() {
   // Load high score from localStorage with fallback
   try {
       highScore = localStorage.getItem('tetrisHighScore') || 0;
-      document.getElementById('high-score').textContent = highScore;
+      document.getElementById('high-score').textContent = Number(highScore).toLocaleString();
   } catch (e) {
       console.log('localStorage not available, high score tracking disabled');
       document.getElementById('high-score-container').style.display = 'none';
@@ -116,14 +116,12 @@ function init() {
   // Create game board grid
   createGrid();
   createThreeBorder();
-
-  // Create pause button
-  createPauseButton();
   
   // Add event listeners
   window.addEventListener('keydown', handleKeyPress);
   window.addEventListener('resize', handleResize);
-  document.getElementById('restart-button').addEventListener('click', restartGame);
+  document.getElementById('restart-button1').addEventListener('click', restartGame1);
+  document.getElementById('restart-button2').addEventListener('click', restartGame2);
   document.getElementById('start-button').addEventListener('click', startGame);
   document.getElementById('pause-button').addEventListener('click', togglePause);
   
@@ -254,29 +252,6 @@ function handleVisibilityChange() {
     if (gameStarted && !gameOver && !gamePaused) {
       // Auto-pause when switching away
       gamePaused = true;
-      
-      // Save state of pause button
-      const pauseButton = document.getElementById('pause-button').querySelector('button');
-      pauseButton.textContent = '▶️';
-      
-      // Show pause overlay if it doesn't exist
-      if (!document.getElementById('pause-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.id = 'pause-overlay';
-        overlay.style.position = 'absolute';
-        overlay.style.top = '50%';
-        overlay.style.left = '50%';
-        overlay.style.transform = 'translate(-50%, -50%)';
-        overlay.style.background = 'rgba(0,0,0,0.7)';
-        overlay.style.padding = '20px';
-        overlay.style.borderRadius = '10px';
-        overlay.style.color = 'white';
-        overlay.style.fontSize = '24px';
-        overlay.style.fontWeight = 'bold';
-        overlay.style.zIndex = '90';
-        overlay.textContent = 'PAUSED';
-        document.getElementById('game-container').appendChild(overlay);
-      }
     }
   }
 }
@@ -295,15 +270,26 @@ function startGame() {
   resetGame();
 }
 
-function restartGame(){
+function restartGame1(){
     
     gameStarted = true;
 
     // Get the selected starting level
-    const selectedLevel = parseInt(document.getElementById('restarting-level').value);
+    const selectedLevel = parseInt(document.getElementById('restarting-level1').value);
     level = selectedLevel;
     gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
     resetGame();
+}
+
+function restartGame2(){
+    
+  gameStarted = true;
+
+  // Get the selected starting level
+  const selectedLevel = parseInt(document.getElementById('restarting-level2').value);
+  level = selectedLevel;
+  gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+  resetGame();
 }
 
 // Initialize the next piece preview
@@ -481,8 +467,11 @@ function resetGame() {
   gameOver = false;
   lastUpdateTime = 0; // Reset time for RAF-based game loop
   
+  gamePaused = false;
+  document.getElementById("pause-overlay").classList.add("hidden");
+
   // Update UI
-  document.getElementById('score').textContent = score;
+  document.getElementById('score').textContent = Number(score).toLocaleString();
   document.getElementById('level').textContent = level;
   document.getElementById('game-over').style.display = 'none';
     
@@ -527,15 +516,15 @@ function spawnNewPiece() {
           if (score > highScore) {
               highScore = score;
               localStorage.setItem('tetrisHighScore', highScore);
-              document.getElementById('high-score').textContent = highScore;
+              document.getElementById('high-score').textContent = Number(highScore).toLocaleString();
           }
       } catch (e) {
           // Skip high score update if localStorage is not available
       }
       
-      document.getElementById('final-score').textContent = score;
+      document.getElementById('final-score').textContent = Number(score).toLocaleString();
       try {
-          document.getElementById('final-high-score').textContent = highScore;
+          document.getElementById('final-high-score').textContent = Number(highScore).toLocaleString();
       } catch (e) {
           // Ignore if high score display isn't available
       }
@@ -786,7 +775,7 @@ function dropPiece() {
         
         // Add bonus points for hard drop (1 point per row)
         score += droppedRows;
-        document.getElementById('score').textContent = score;
+        document.getElementById('score').textContent = Number(score).toLocaleString();
         
         lockPiece();
     }
@@ -840,14 +829,14 @@ function checkLines() {
       
       const points = [0, 40, 100, 250, 600][linesCleared] * level;
       score += points;
-      document.getElementById('score').textContent = score;
+      document.getElementById('score').textContent = Number(score).toLocaleString();
       
       // Update high score if needed and localStorage is available
       try {
           if (score > highScore) {
               highScore = score;
               localStorage.setItem('tetrisHighScore', highScore);
-              document.getElementById('high-score').textContent = highScore;
+              document.getElementById('high-score').textContent = Number(highScore).toLocaleString();
           }
       } catch (e) {
           // Skip high score update if localStorage is not available
@@ -924,57 +913,27 @@ function handleResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// Create pause button
-function createPauseButton() {
-    const pauseButton = document.createElement('div');
-    pauseButton.id = 'pause-button';
-    pauseButton.innerHTML = '<button class="button">⏸️</button>';
-    pauseButton.style.position = 'absolute';
-    pauseButton.style.left = '20px';
-    pauseButton.style.top = '0px';
-    pauseButton.style.zIndex = '100';
-    document.getElementById('game-container').appendChild(pauseButton);
-}
-
 // Toggle pause state
 function togglePause() {
     if (!gameStarted || gameOver) return;
     
     gamePaused = !gamePaused;
-    
-    const pauseButton = document.getElementById('pause-button').querySelector('button');
-    
+        
     if (gamePaused) {
-        pauseButton.textContent = '▶️';
         clearInterval(gameLoop);
         
-        // Create pause overlay
-        if (!document.getElementById('pause-overlay')) {
-            const overlay = document.createElement('div');
-            overlay.id = 'pause-overlay';
-            overlay.style.position = 'absolute';
-            overlay.style.top = '50%';
-            overlay.style.left = '50%';
-            overlay.style.transform = 'translate(-50%, -50%)';
-            overlay.style.background = 'rgba(0,0,0,0.7)';
-            overlay.style.padding = '20px';
-            overlay.style.borderRadius = '10px';
-            overlay.style.color = 'white';
-            overlay.style.fontSize = '24px';
-            overlay.style.fontWeight = 'bold';
-            overlay.style.zIndex = '90';
-            overlay.textContent = 'PAUSED';
-            document.getElementById('game-container').appendChild(overlay);
-        }
-    } else {
-        pauseButton.textContent = '⏸️';
-        gameLoop = setInterval(update, gameSpeed);
+        document.getElementById("pause-overlay").classList.remove("hidden");
         
+    } else {
+        gameLoop = setInterval(update, gameSpeed);
+        document.getElementById("pause-overlay").classList.add("hidden");
+        /*
         // Remove pause overlay
         const overlay = document.getElementById('pause-overlay');
         if (overlay) {
             overlay.parentNode.removeChild(overlay);
         }
+        */
     }
 }
 

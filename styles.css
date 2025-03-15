@@ -15,6 +15,11 @@ canvas {
   height: 100%;
   /* max-width: 1000px; */
 }
+
+.hidden {
+  display: none;
+}
+
 #game-container {
   position: absolute;
   top: 0;
@@ -142,6 +147,28 @@ canvas {
 .button:hover {
   background: #45a049;
 }
+
+#pause-button {
+  position: absolute;
+  left: 20px;
+  top: 0px;
+  z-index: 100;
+}
+
+#pause-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  border-radius: 6px;
+  color: white;
+  font-size: 20px;
+  z-index: 90;
+}
+
+
 #controls {
   position: absolute;
   bottom: 20px;
