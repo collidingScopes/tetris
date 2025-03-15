@@ -8,6 +8,7 @@ Frutiger Aero styling for the whole page
 Play sound upon level up / locking the block
 Fix piece inversion in the next piece window
 Change button stying / colors
+Increase sensitivity of multi-movement drags to the left / right
 */
 
 // Game constants
@@ -59,6 +60,13 @@ let nextPieceRenderer = null;
 let nextPieceScene = null;
 let nextPieceCamera = null;
 let fpsCounter;
+let isMobile = deviceUtils.isMobile();
+let viewSize;
+if(isMobile){
+  viewSize = 24;
+} else {
+  viewSize = 22;
+}
 
 // Initialize Three.js
 function init() {
@@ -89,7 +97,6 @@ function init() {
 
   // Create camera
   const aspectRatio = window.innerWidth / window.innerHeight;
-  const viewSize = 22;
   camera = new THREE.OrthographicCamera(
       -aspectRatio * viewSize / 2,
       aspectRatio * viewSize / 2,
@@ -916,7 +923,6 @@ function handleKeyPress(event) {
 // Handle window resize
 function handleResize() {
     const aspectRatio = window.innerWidth / window.innerHeight;
-    const viewSize = 25;
     
     camera.left = -aspectRatio * viewSize / 2;
     camera.right = aspectRatio * viewSize / 2;
