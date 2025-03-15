@@ -391,8 +391,8 @@ function renderNextPiecePreview() {
                 const cube = new THREE.Mesh(geometry, material);
                 
                 // Position the cube centered in preview
-                cube.position.set(x - offsetX + 0.5, -y + offsetY - 0.5, 0);
-                
+                cube.position.set(x - offsetX + 0.5, offsetY - y - 0.5, 0);
+
                 nextPieceScene.add(cube);
             }
         }

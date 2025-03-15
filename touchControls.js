@@ -60,12 +60,12 @@ const touchState = {
 
 // Constants for touch control sensitivity
 const TOUCH_CONTROLS = {
-  MOVE_THRESHOLD: 15,    // Minimum pixels needed for horizontal movement
+  MOVE_THRESHOLD: 25,    // Minimum pixels needed for horizontal movement
   DOWN_THRESHOLD: 15,    // Minimum pixels needed for downward movement
   TAP_THRESHOLD: 20,     // Maximum movement allowed for a tap gesture
   TAP_DURATION: 250,     // Maximum duration (ms) for a tap
   HARD_DROP_MIN_Y: 50,   // Minimum vertical distance for hard drop
-  HARD_DROP_VELOCITY: 0.6 // Pixels/ms velocity threshold for hard drop
+  HARD_DROP_VELOCITY: 0.65 // Pixels/ms velocity threshold for hard drop
 };
 
 // Setup touch event handlers
