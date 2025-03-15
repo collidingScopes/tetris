@@ -41,6 +41,40 @@ const TOUCH_CONTROLS = {
   MOVE_COOLDOWN: 80              // Minimum time between consecutive move actions
 };
 
+/**
+ * Checks if an element is a UI control that should receive normal touch events
+ * @param {HTMLElement} element - The element to check
+ * @returns {boolean} True if the element is a UI control
+ */
+function isUIElement(element) {
+  // Check for common UI elements
+  if (!element) return false;
+  
+  // Check if the element is a button or has button class
+  if (element.tagName === 'BUTTON' || element.classList.contains('button')) {
+    return true;
+  }
+  
+  // Check for specific UI element IDs
+  const uiElementIds = [
+    'start-button', 'restart-button1', 'restart-button2', 'pause-button',
+    'mute-button', 'play-button', 'starting-level', 'restarting-level1', 
+    'restarting-level2', 'pause-overlay', 'start-screen', 'game-over'
+  ];
+  
+  if (uiElementIds.includes(element.id)) {
+    return true;
+  }
+  
+  // Check if it's inside a UI container
+  return (
+    element.closest('.level-selector') !== null ||
+    element.closest('#start-screen') !== null ||
+    element.closest('#game-over') !== null ||
+    element.closest('#pause-overlay') !== null
+  );
+}
+
 // Handle touch move event
 function handleTouchMove(event) {
   // Ignore if touch isn't active or game isn't running
