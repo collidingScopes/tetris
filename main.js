@@ -33,6 +33,7 @@ let score = 0;
 let highScore = 0;
 let level = 1;
 let initialGameSpeed = 1200;
+let speedProgression = 80;
 let gameSpeed = initialGameSpeed; // milliseconds
 let gameOver = false;
 let gameStarted = false;
@@ -120,7 +121,7 @@ function startGame() {
     // Get the selected starting level
     const selectedLevel = parseInt(document.getElementById('starting-level').value);
     level = selectedLevel;
-    gameSpeed = Math.max(100, initialGameSpeed - (level - 1) * 100);
+    gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
     
     resetGame();
 }
@@ -642,7 +643,7 @@ function checkLines() {
         // Play clear line sound and pass the number of lines cleared
         clearLineSound(linesCleared);
         
-        const points = [0, 40, 100, 300, 1200][linesCleared] * level;
+        const points = [0, 40, 100, 250, 600][linesCleared] * level;
         score += points;
         document.getElementById('score').textContent = score;
         
@@ -664,7 +665,7 @@ function checkLines() {
             document.getElementById('level').textContent = level;
             
             // Speed up the game
-            gameSpeed = Math.max(100, initialGameSpeed - (level - 1) * 100);
+            gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
             clearInterval(gameLoop);
             gameLoop = setInterval(update, gameSpeed);
         }
@@ -735,7 +736,7 @@ function createPauseButton() {
     pauseButton.innerHTML = '<button class="button">⏸️</button>';
     pauseButton.style.position = 'absolute';
     pauseButton.style.left = '20px';
-    pauseButton.style.top = '20px';
+    pauseButton.style.top = '10px';
     pauseButton.style.zIndex = '100';
     document.getElementById('game-container').appendChild(pauseButton);
 }

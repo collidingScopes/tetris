@@ -7,8 +7,8 @@ let currentTouchX = 0;
 let isTap = false;
 let isMoving = false;
 let lastMoveX = 0;
-const MIN_SWIPE_DISTANCE = 40; // Minimum distance for a swipe to be registered
-const MOVE_THRESHOLD = 30; // Distance required to trigger a movement
+const MIN_SWIPE_DISTANCE = 45; // Minimum distance for a swipe to be registered
+const MOVE_THRESHOLD = 35; // Distance required to trigger a movement
 
 function initTouchControls() {
     const gameContainer = document.getElementById('game-container');
