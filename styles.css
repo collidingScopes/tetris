@@ -51,11 +51,21 @@ canvas {
   z-index: 100;
 }
 
-#pause-button {
+#button-container {
   position: absolute;
+  top: 5px;
+  left: 5px;
+  display: flex;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+}
+
+#pause-button {
+  /* position: absolute;
   left: 20px;
   top: 10px;
-  z-index: 100;
+  z-index: 100; */
 }
 #pause-button, #play-button {
   font-size: 20px;
@@ -67,10 +77,10 @@ canvas {
   border-radius: 5px;
 }
 #mute-button {
-  position: absolute;
+  /* position: absolute;
   top: 50px;
   left: 20px;
-  z-index: 100;
+  z-index: 100; */
 
   font-size: 20px;
   background: #4CAF50;
@@ -211,11 +221,6 @@ h1 {
 @media (max-width: 768px) {
   #score-container, #high-score-container, #level-container {
     font-size: 18px;
-  }
-  
-  #pause-button button, #mute-button {
-    padding: 8px 16px;
-    font-size: 22px;
   }
   
   #controls {
