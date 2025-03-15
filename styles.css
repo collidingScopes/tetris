@@ -50,23 +50,7 @@ canvas {
   font-size: 20px;
   z-index: 100;
 }
-#mute-button {
-  position: absolute;
-  top: 50px;
-  left: 20px;
-  z-index: 100;
 
-  font-size: 20px;
-  background: #4CAF50;
-  border: none;
-  color: white;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 5px;
-}
-#mute-button:hover {
-  background: #45a049;
-}
 #pause-button {
   position: absolute;
   left: 20px;
@@ -82,7 +66,21 @@ canvas {
   cursor: pointer;
   border-radius: 5px;
 }
-#pause-button:hover {
+#mute-button {
+  position: absolute;
+  top: 50px;
+  left: 20px;
+  z-index: 100;
+
+  font-size: 20px;
+  background: #4CAF50;
+  border: none;
+  color: white;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+#pause-button:hover, #mute-button:hover {
   background: #45a049;
 }
 #game-over {
@@ -237,10 +235,6 @@ h1 {
     top: 50px;
   }
   
-  #mute-button {
-    top: 50px;
-  }
-  
   #next-piece-container {
     top: 80px;
   }
@@ -275,7 +269,7 @@ h1 {
 
 /* Ensure canvas captures touch events properly */
 #game-container canvas {
-  position: absolute;
+  /* position: absolute; */
   z-index: 10;
   touch-action: none;
   user-select: none;
