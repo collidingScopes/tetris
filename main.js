@@ -375,6 +375,9 @@ function spawnNewPiece() {
   
   // Create and add the blocks to the scene
   renderPiece();
+  
+  // Trigger the new piece event
+  triggerNewPieceEvent();
 }
 
 // Render the current piece
@@ -544,6 +547,12 @@ function movePiece(dx, dy) {
     return false;
 }
 
+// Add this function to create a custom event
+function triggerNewPieceEvent() {
+  const newPieceEvent = new Event('newPieceSpawned');
+  document.dispatchEvent(newPieceEvent);
+}
+
 // Rotate the current piece
 function rotatePiece() {
     const rotated = [];
@@ -569,33 +578,33 @@ function rotatePiece() {
 
 // Lock the current piece in place
 function lockPiece() {
-    for (let y = 0; y < currentPiece.shape.length; y++) {
-        for (let x = 0; x < currentPiece.shape[y].length; x++) {
-            if (currentPiece.shape[y][x]) {
-                const boardX = currentPosition.x + x;
-                const boardY = currentPosition.y + y;
-                
-                if (boardY >= 0 && boardY < BOARD_HEIGHT) {
-                    board[boardY][boardX] = currentPiece.color;
-                    
-                    // Convert current piece blocks to locked blocks
-                    blocks.forEach(block => {
-                        if (block.userData.isPiece && 
-                            block.userData.x === boardX && 
-                            block.userData.y === boardY) {
-                            block.userData.isPiece = false;
-                        }
-                    });
-                }
-            }
-        }
-    }
-    
-    // Check for completed lines
-    checkLines();
-    
-    // Spawn a new piece
-    spawnNewPiece();
+  for (let y = 0; y < currentPiece.shape.length; y++) {
+      for (let x = 0; x < currentPiece.shape[y].length; x++) {
+          if (currentPiece.shape[y][x]) {
+              const boardX = currentPosition.x + x;
+              const boardY = currentPosition.y + y;
+              
+              if (boardY >= 0 && boardY < BOARD_HEIGHT) {
+                  board[boardY][boardX] = currentPiece.color;
+                  
+                  // Convert current piece blocks to locked blocks
+                  blocks.forEach(block => {
+                      if (block.userData.isPiece && 
+                          block.userData.x === boardX && 
+                          block.userData.y === boardY) {
+                          block.userData.isPiece = false;
+                      }
+                  });
+              }
+          }
+      }
+  }
+  
+  // Check for completed lines
+  checkLines();
+  
+  // Spawn a new piece
+  spawnNewPiece();
 }
 
 // Drop the piece all the way down

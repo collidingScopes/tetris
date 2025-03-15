@@ -9,10 +9,13 @@ let lastMoveX = 0;
 let lastMoveY = 0;
 let isTap = false;
 let isHardDrop = false;
+let isDownwardSwipe = false;
+let activeTouchId = null;
 const MIN_SWIPE_DISTANCE = 45; // Minimum distance for a swipe to be registered
 const MOVE_THRESHOLD = 35; // Distance required to trigger a movement
 const DOWN_MOVE_THRESHOLD = 40; // Distance required to trigger a downward movement
 const HARD_DROP_THRESHOLD = 80; // Distance required for a hard drop
+const DOWNWARD_SWIPE_THRESHOLD = 30; // Threshold to detect primarily downward movement
 
 function initTouchControls() {
     const gameContainer = document.getElementById('game-container');
@@ -21,6 +24,16 @@ function initTouchControls() {
     gameContainer.addEventListener('touchstart', handleTouchStart, false);
     gameContainer.addEventListener('touchmove', handleTouchMove, false);
     gameContainer.addEventListener('touchend', handleTouchEnd, false);
+    
+    // Listen for new piece spawns to reset touch interaction
+    document.addEventListener('newPieceSpawned', resetTouchInteraction);
+}
+
+function resetTouchInteraction() {
+    // Reset all touch variables when a new piece is spawned
+    activeTouchId = null;
+    isDownwardSwipe = false;
+    isHardDrop = false;
 }
 
 function handleTouchStart(event) {
@@ -29,54 +42,80 @@ function handleTouchStart(event) {
         event.preventDefault();
     }
     
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-    currentTouchX = touchStartX;
-    currentTouchY = touchStartY;
-    touchEndX = touchStartX;
-    touchEndY = touchStartY;
-    isTap = true;
-    isHardDrop = false;
-    lastMoveX = Math.floor(touchStartX / MOVE_THRESHOLD) * MOVE_THRESHOLD;
-    lastMoveY = Math.floor(touchStartY / DOWN_MOVE_THRESHOLD) * DOWN_MOVE_THRESHOLD;
+    // Only process touch if no active touch or previous touch completed
+    if (activeTouchId === null) {
+        activeTouchId = event.touches[0].identifier;
+        
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+        currentTouchX = touchStartX;
+        currentTouchY = touchStartY;
+        touchEndX = touchStartX;
+        touchEndY = touchStartY;
+        isTap = true;
+        isHardDrop = false;
+        isDownwardSwipe = false;
+        lastMoveX = Math.floor(touchStartX / MOVE_THRESHOLD) * MOVE_THRESHOLD;
+        lastMoveY = Math.floor(touchStartY / DOWN_MOVE_THRESHOLD) * DOWN_MOVE_THRESHOLD;
+    }
 }
 
 function handleTouchMove(event) {
-    if (gameStarted && !gameOver && !gamePaused) {
-        const currentX = event.touches[0].clientX;
-        const currentY = event.touches[0].clientY;
-        
-        currentTouchX = currentX;
-        currentTouchY = currentY;
-        touchEndX = currentX;
-        touchEndY = currentY;
-        
-        // Determine the type of movement
-        const deltaX = currentX - touchStartX;
-        const deltaY = currentY - touchStartY;
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
-        
-        // If the finger moved more than a small threshold, it's not a tap
-        if (absX > 10 || absY > 10) {
-            isTap = false;
+    if (!gameStarted || gameOver || gamePaused || activeTouchId === null) return;
+    
+    // Find our active touch
+    let activeTouch = null;
+    for (let i = 0; i < event.touches.length; i++) {
+        if (event.touches[i].identifier === activeTouchId) {
+            activeTouch = event.touches[i];
+            break;
         }
-        
-        // Handle horizontal movement if there's enough horizontal movement
-        if (absX > 10) {
-            handleHorizontalMovement(currentX);
-        }
-        
-        // Handle vertical movement if there's enough vertical movement
-        if (deltaY > 10) {
-            // Check for hard drop first - if movement is very fast and primarily downward
-            if (deltaY > HARD_DROP_THRESHOLD && absY > absX * 1.5 && !isHardDrop) {
-                dropPiece();
-                isHardDrop = true;
-            } else {
-                // Otherwise handle gradual downward movement
-                handleVerticalMovement(currentY);
-            }
+    }
+    
+    // If we lost our active touch, exit
+    if (!activeTouch) return;
+    
+    const currentX = activeTouch.clientX;
+    const currentY = activeTouch.clientY;
+    
+    currentTouchX = currentX;
+    currentTouchY = currentY;
+    touchEndX = currentX;
+    touchEndY = currentY;
+    
+    // Determine the type of movement
+    const deltaX = currentX - touchStartX;
+    const deltaY = currentY - touchStartY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    
+    // If the finger moved more than a small threshold, it's not a tap
+    if (absX > 10 || absY > 10) {
+        isTap = false;
+    }
+    
+    // Detect if this is primarily a downward swipe
+    if (deltaY > DOWNWARD_SWIPE_THRESHOLD && absY > absX * 1.2) {
+        isDownwardSwipe = true;
+    }
+    
+    // Handle horizontal movement only if not in a downward swipe
+    if (!isDownwardSwipe && absX > 10) {
+        handleHorizontalMovement(currentX);
+    }
+    
+    // Handle vertical movement if there's enough vertical movement
+    if (deltaY > 10) {
+        // Check for hard drop first - if movement is very fast and primarily downward
+        if (deltaY > HARD_DROP_THRESHOLD && absY > absX * 1.5 && !isHardDrop) {
+            dropPiece();
+            isHardDrop = true;
+            
+            // Immediately end this touch interaction after a hard drop
+            activeTouchId = null;
+        } else {
+            // Otherwise handle gradual downward movement
+            handleVerticalMovement(currentY);
         }
     }
 }
@@ -121,30 +160,43 @@ function handleVerticalMovement(currentY) {
 function handleTouchEnd(event) {
     if (!gameStarted || gameOver || gamePaused) return;
     
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-    
-    // Detect tap (for rotation)
-    if (isTap) {
-        rotatePiece();
-        return;
-    }
-    
-    // Handle hard drop if not already processed and it's a significant downward swipe
-    if (deltaY > HARD_DROP_THRESHOLD && absY > absX && !isHardDrop) {
-        dropPiece();
-    }
-    // Otherwise handle a final horizontal movement if needed
-    else if (absX > MIN_SWIPE_DISTANCE && absX > absY * 0.7) {
-        if (deltaX > 0) {
-            // Swipe right
-            movePiece(1, 0);
-        } else {
-            // Swipe left
-            movePiece(-1, 0);
+    // Check if our active touch has ended
+    let touchFound = false;
+    for (let i = 0; i < event.touches.length; i++) {
+        if (event.touches[i].identifier === activeTouchId) {
+            touchFound = true;
+            break;
         }
+    }
+    
+    // If our touch has ended, process the final action
+    if (!touchFound) {
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+        
+        // Detect tap (for rotation)
+        if (isTap) {
+            rotatePiece();
+        }
+        // Handle hard drop if not already processed and it's a significant downward swipe
+        else if (deltaY > HARD_DROP_THRESHOLD && absY > absX && !isHardDrop) {
+            dropPiece();
+        }
+        // Otherwise handle a final horizontal movement if needed
+        else if (!isDownwardSwipe && absX > MIN_SWIPE_DISTANCE && absX > absY * 0.7) {
+            if (deltaX > 0) {
+                // Swipe right
+                movePiece(1, 0);
+            } else {
+                // Swipe left
+                movePiece(-1, 0);
+            }
+        }
+        
+        // Reset active touch
+        activeTouchId = null;
     }
 }
 
