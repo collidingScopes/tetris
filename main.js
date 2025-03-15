@@ -1,13 +1,11 @@
 /*
 To do:
-Add level select on the game over / restart screen
 Glossy 3D buttons
 Some animations
 Background music?
-Weird error where the game freezes / breaks?
 Audit the score / level / speed progression calcs
 Frutiger Aero styling for the whole page
-Play sound upon level up
+Play sound upon level up / locking the block
 */
 
 // Game constants
@@ -56,6 +54,7 @@ let ghostBlocks = [];
 let nextPieceRenderer = null;
 let nextPieceScene = null;
 let nextPieceCamera = null;
+let fpsCounter;
 
 // Initialize Three.js
 function init() {
@@ -124,7 +123,8 @@ function init() {
   document.getElementById('restart-button2').addEventListener('click', restartGame2);
   document.getElementById('start-button').addEventListener('click', startGame);
   document.getElementById('pause-button').addEventListener('click', togglePause);
-  
+  document.getElementById('play-button').addEventListener('click', playGame);
+
   // Initialize next piece preview
   initNextPiecePreview();
     
@@ -132,17 +132,20 @@ function init() {
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
   // Remove any existing interval
+  /*
   if (gameLoop) {
     clearInterval(gameLoop);
     gameLoop = null;
   }
+  */
+  cancelAnimationFrame(gameLoopId);
 
   // Initialize pooled geometries and materials
   blockGeometryPool.init();
   materialCache.init();
   
   // Set up FPS monitoring
-  const fpsCounter = {
+  fpsCounter = {
     frameCount: 0,
     lastCheck: 0,
     fps: 60,
@@ -160,37 +163,37 @@ function init() {
     }
   };
   
-  // Enhanced animation function with game loop integrated
-  function enhancedAnimate(timestamp) {
-    gameLoopId = requestAnimationFrame(enhancedAnimate);
-    
-    // Update FPS counter
-    fpsCounter.update(timestamp);
-    
-    // Render the game scene
-    renderer.render(scene, camera);
-    
-    // Skip game logic if game is not running
-    if (!gameStarted || gameOver || gamePaused) return;
-    
-    // Calculate time since last update
-    if (!lastUpdateTime) lastUpdateTime = timestamp;
-    const elapsed = timestamp - lastUpdateTime;
-    
-    // Update game state if enough time has passed
-    if (elapsed >= gameSpeed) {
-      update();
-      lastUpdateTime = timestamp;
-    }
-    
-    // Perform periodic memory cleanup
-    if (timestamp % 30000 < 20) { // Every ~30 seconds
-      renderer.renderLists.dispose();
-    }
+  // Start the animation loop (which now includes game updates)
+  gameLoopId = requestAnimationFrame(animate);
+}
+
+// Enhanced animation function with game loop integrated
+function animate(timestamp) {
+  gameLoopId = requestAnimationFrame(animate);
+  
+  // Update FPS counter
+  fpsCounter.update(timestamp);
+  
+  // Render the game scene
+  renderer.render(scene, camera);
+  
+  // Skip game logic if game is not running
+  if (!gameStarted || gameOver || gamePaused) return;
+  
+  // Calculate time since last update
+  if (!lastUpdateTime) lastUpdateTime = timestamp;
+  const elapsed = timestamp - lastUpdateTime;
+  
+  // Update game state if enough time has passed
+  if (elapsed >= gameSpeed) {
+    update();
+    lastUpdateTime = timestamp;
   }
   
-  // Start the animation loop (which now includes game updates)
-  gameLoopId = requestAnimationFrame(enhancedAnimate);
+  // Perform periodic memory cleanup
+  if (timestamp % 30000 < 20) { // Every ~30 seconds
+    renderer.renderLists.dispose();
+  }
 }
 
 // Object pooling for block geometry and materials
@@ -271,18 +274,19 @@ function startGame() {
 }
 
 function restartGame1(){
-    
-    gameStarted = true;
+  console.log("restart game from pauseOverlay screen");
 
-    // Get the selected starting level
-    const selectedLevel = parseInt(document.getElementById('restarting-level1').value);
-    level = selectedLevel;
-    gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
-    resetGame();
+  gameStarted = true;
+
+  // Get the selected starting level
+  const selectedLevel = parseInt(document.getElementById('restarting-level1').value);
+  level = selectedLevel;
+  gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
+  resetGame();
 }
 
 function restartGame2(){
-    
+  console.log("restart game from gameOver screen");
   gameStarted = true;
 
   // Get the selected starting level
@@ -438,6 +442,8 @@ function generateNextPiece() {
 
 // Reset game state
 function resetGame() {
+  console.log("reset game");
+
   // Clear the board
   board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
   
@@ -474,6 +480,8 @@ function resetGame() {
   document.getElementById('score').textContent = Number(score).toLocaleString();
   document.getElementById('level').textContent = level;
   document.getElementById('game-over').style.display = 'none';
+
+  gameLoopId = requestAnimationFrame(animate);
     
   // First, generate a random piece for the preview window
   const shapeIndex = Math.floor(Math.random() * SHAPES.length);
@@ -506,7 +514,9 @@ function spawnNewPiece() {
   // Check if the new piece can be placed
   if (!isValidMove(currentPosition.x, currentPosition.y, currentPiece.shape)) {
       gameOver = true;
-      clearInterval(gameLoop);
+      
+      cancelAnimationFrame(gameLoopId)
+      //clearInterval(gameLoop);
       
       // Play game over sound
       gameOverSound();
@@ -850,8 +860,10 @@ function checkLines() {
           
           // Speed up the game
           gameSpeed = Math.max(100, initialGameSpeed - ((level - 1) * speedProgression) );
-          clearInterval(gameLoop);
-          gameLoop = setInterval(update, gameSpeed);
+          cancelAnimationFrame(gameLoopId);
+          gameLoopId = requestAnimationFrame(animate);
+          //clearInterval(gameLoop);
+          //gameLoop = setInterval(update, gameSpeed);
       }
   }
 }
@@ -920,21 +932,29 @@ function togglePause() {
     gamePaused = !gamePaused;
         
     if (gamePaused) {
-        clearInterval(gameLoop);
+        //clearInterval(gameLoop);
+        cancelAnimationFrame(gameLoopId);
         
         document.getElementById("pause-overlay").classList.remove("hidden");
         
     } else {
-        gameLoop = setInterval(update, gameSpeed);
+        //gameLoop = setInterval(update, gameSpeed);
+        gameLoopId = requestAnimationFrame(animate);
         document.getElementById("pause-overlay").classList.add("hidden");
-        /*
-        // Remove pause overlay
-        const overlay = document.getElementById('pause-overlay');
-        if (overlay) {
-            overlay.parentNode.removeChild(overlay);
-        }
-        */
     }
+}
+
+function playGame() {
+        
+  if (gamePaused) {
+    //gameLoop = setInterval(update, gameSpeed);
+    gameLoopId = requestAnimationFrame(animate);
+    document.getElementById("pause-overlay").classList.add("hidden");
+    gamePaused = false  
+
+  } else {
+
+  }
 }
 
 // Animation loop
@@ -942,6 +962,7 @@ let lastUpdateTime = 0;
 let gameLoopId = null;
 
 // Replace the main animate function with this improved version
+/*
 function animate(timestamp) {
   gameLoopId = requestAnimationFrame(animate);
   
@@ -961,6 +982,7 @@ function animate(timestamp) {
     lastUpdateTime = timestamp;
   }
 }
+*/
 
 // Function to create a border in the Three.js scene
 function createThreeBorder() {
