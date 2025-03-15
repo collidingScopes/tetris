@@ -158,7 +158,7 @@ function initNextPiecePreview() {
         canvas: canvas,
         antialias: true 
     });
-    nextPieceRenderer.setSize(100, 100);
+    nextPieceRenderer.setSize(80, 80);
     nextPieceRenderer.setClearColor(0x111111);
     
     // Create scene
@@ -832,8 +832,8 @@ function createThreeBorder() {
   const innerBorderMaterial = new THREE.LineBasicMaterial({ 
     color: 0xFFFFFF, // White
     transparent: true,
-    opacity: 0.5,
-    linewidth: 3,
+    opacity: 0.8,
+    linewidth: 5,
   });
   
   // Create slightly smaller inner border
@@ -881,4 +881,6 @@ function addThreeBorderToInit() {
 addThreeBorderToInit();
 
 // Start the game when the page loads
+let mobileDeviceFlag = isMobileDevice();
+console.log("mobile device: "+mobileDeviceFlag);
 window.onload = init;

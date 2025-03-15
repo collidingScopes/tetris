@@ -13,9 +13,9 @@ let isDownwardSwipe = false;
 let activeTouchId = null;
 const MIN_SWIPE_DISTANCE = 50; // Minimum distance for a swipe to be registered
 const MOVE_THRESHOLD = 40; // Distance required to trigger a movement
-const DOWN_MOVE_THRESHOLD = 40; // Distance required to trigger a downward movement
-const HARD_DROP_THRESHOLD = 80; // Distance required for a hard drop
-const DOWNWARD_SWIPE_THRESHOLD = 20; // Threshold to detect primarily downward movement
+const DOWN_MOVE_THRESHOLD = 30; // Distance required to trigger a downward movement
+const HARD_DROP_THRESHOLD = 100; // Distance required for a hard drop
+const DOWNWARD_SWIPE_THRESHOLD = 10; // Threshold to detect primarily downward movement
 
 function initTouchControls() {
     const gameContainer = document.getElementById('game-container');
