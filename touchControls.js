@@ -39,7 +39,7 @@ const touchState = {
 
 // Touch control sensitivity constants
 const TOUCH_CONTROLS = {
-  MOVE_THRESHOLD: 13,            // Pixels needed for horizontal movement
+  MOVE_THRESHOLD: 10,            // Pixels needed for horizontal movement
   DOWN_THRESHOLD: 13,            // Pixels needed for downward movement
   VERTICAL_BIAS_THRESHOLD: 2.0,  // Ratio of vertical to horizontal movement to consider primarily vertical
   HORIZONTAL_BIAS_THRESHOLD: 2,  // Ratio of horizontal to vertical movement to consider primarily horizontal
@@ -47,9 +47,9 @@ const TOUCH_CONTROLS = {
   DIRECTION_LOCK_DURATION: 150,  // Time in ms to lock in a movement direction
   TAP_THRESHOLD: 20,             // Maximum movement allowed for a tap gesture
   TAP_DURATION: 250,             // Maximum duration (ms) for a tap
-  HARD_DROP_MIN_Y: 40,           // Minimum vertical distance for hard drop
-  HARD_DROP_VELOCITY: 0.60,      // Pixels/ms velocity threshold for hard drop
-  MOVE_COOLDOWN: 80,              // Minimum time between consecutive move actions
+  HARD_DROP_MIN_Y: 35,           // Minimum vertical distance for hard drop
+  HARD_DROP_VELOCITY: 0.50,      // Pixels/ms velocity threshold for hard drop
+  MOVE_COOLDOWN: 70,              // Minimum time between consecutive move actions
 };
 
 /**
