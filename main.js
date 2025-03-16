@@ -13,14 +13,25 @@ Increase sensitivity of multi-movement drags to the left / right
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 const BLOCK_SIZE = 1;
+
+// const COLORS = [
+//     0xff0000, // Red - I
+//     0x00ff00, // Green - J
+//     0x0000ff, // Blue - L
+//     0xffff00, // Yellow - O
+//     0xff00ff, // Magenta - S
+//     0x7300c8, // Purple - T
+//     0x00ffff,  // Cyan - Z
+// ];
+
 const COLORS = [
-    0xff0000, // Red - I
-    0x00ff00, // Green - J
-    0x0000ff, // Blue - L
-    0xffff00, // Yellow - O
-    0xff00ff, // Magenta - S
-    0x7300c8, // Purple - T
-    0x00ffff,  // Cyan - Z
+  0xff3366, // Hot Pink - I
+  0x33ccff, // Cyan Blue - J
+  0x00ff99, // Neon Green - L
+  0xffcc00, // Golden Yellow - O
+  0xff66ff, // Magenta - S
+  0x9933ff, // Purple - T
+  0x00ffff,  // Aqua - Z
 ];
 
 // Tetromino shapes
@@ -67,6 +78,9 @@ if(isMobile){
 }
 let currentLevelLinesCleared = 0;
 
+let lastUpdateTime = 0;
+let gameLoopId = null;
+
 // Initialize Three.js
 function init() {
   // Initialize audio first
@@ -90,9 +104,12 @@ function init() {
       document.getElementById('high-score-container').style.display = 'none';
   }
   
-  // Create scene
+  // Create scene with Y2K-style background
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111111);
+  //scene.background = new THREE.Color(0x000033); // Deep blue background
+  
+  // Add fog for depth perception (subtle Y2K effect)
+  scene.fog = new THREE.Fog(0x000033, 30, 50);
 
   // Create camera
   const aspectRatio = window.innerWidth / window.innerHeight;
@@ -107,20 +124,45 @@ function init() {
   camera.position.set(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 20);
   camera.lookAt(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 0);
 
-  // Create renderer
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  // Create renderer with better quality settings for Y2K glossy look
+  renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true 
+  });
+  renderer.setClearColor(0x000000, 0); // Set clear color with alpha 0 (fully transparent)
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById('game-container').appendChild(renderer.domElement);
   
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
+  // Adjust pixel ratio for better performance on high-DPI screens
+  const pixelRatio = isLowPerformance ? 1 : Math.min(window.devicePixelRatio, 2);
+  renderer.setPixelRatio(pixelRatio);
+  
+  // Enable shadow mapping if not on low performance device
+  if (!isLowPerformance) {
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
 
-  // Add lights
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  // Y2K-style lighting setup
+  // Remove default lighting and add new Y2K-themed lights
+  // Main ambient light - subtle blue tone
+  const ambientLight = new THREE.AmbientLight(0x6666ff, 0.4);
   scene.add(ambientLight);
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  directionalLight.position.set(10, 20, 30);
-  scene.add(directionalLight);
+  
+  // Main directional light - bright white for primary illumination
+  const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  mainLight.position.set(10, 20, 15);
+  scene.add(mainLight);
+  
+  // Fill light - blue-cyan for that Y2K feel
+  const fillLight = new THREE.DirectionalLight(0x00ccff, 0.4);
+  fillLight.position.set(-15, 10, 8);
+  scene.add(fillLight);
+  
+  // Rim light - magenta to create that distinctive Y2K glow on edges
+  const rimLight = new THREE.DirectionalLight(0xff00ff, 0.3);
+  rimLight.position.set(0, -10, -10);
+  scene.add(rimLight);
 
   // Create game board grid
   createGrid();
@@ -137,43 +179,44 @@ function init() {
 
   // Initialize next piece preview
   initNextPiecePreview();
-    
+  
   // Add document visibility handling
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
   // Remove any existing interval
-  /*
-  if (gameLoop) {
-    clearInterval(gameLoop);
-    gameLoop = null;
-  }
-  */
   cancelAnimationFrame(gameLoopId);
 
   // Initialize pooled geometries and materials
   blockGeometryPool.init();
   materialCache.init();
   
+  // Enhance materials for Y2K look
+  Object.values(materialCache.blockMaterials).forEach(material => {
+      material.shininess = 100;
+      material.specular = new THREE.Color(0xffffff);
+      material.emissiveIntensity = 0.2;
+  });
+  
   // Set up FPS monitoring
   fpsCounter = {
-    frameCount: 0,
-    lastCheck: 0,
-    fps: 60,
-    lowPerformanceMode: false,
-    
-    update(timestamp) {
-      this.frameCount++;
+      frameCount: 0,
+      lastCheck: 0,
+      fps: 60,
+      lowPerformanceMode: false,
       
-      // Calculate FPS every second
-      if (timestamp - this.lastCheck >= 1000) {
-        this.fps = this.frameCount;
-        this.frameCount = 0;
-        this.lastCheck = timestamp;
+      update(timestamp) {
+          this.frameCount++;
+          
+          // Calculate FPS every second
+          if (timestamp - this.lastCheck >= 1000) {
+              this.fps = this.frameCount;
+              this.frameCount = 0;
+              this.lastCheck = timestamp;
+          }
       }
-    }
   };
   
-  // Start the animation loop (which now includes game updates)
+  // Start the animation loop
   gameLoopId = requestAnimationFrame(animate);
 }
 
@@ -227,34 +270,59 @@ const materialCache = {
   blockMaterials: {},
   borderMaterial: null,
   ghostMaterial: null,
+  envMap: null,
   init() {
-    // Create shared border material
-    this.borderMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xcccccc, 
-      wireframe: true,
-      transparent: true,
-      opacity: 0.3
-    });
-    
-    // Create ghost material
-    this.ghostMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0x888888, 
-      transparent: true, 
-      opacity: 0.20,
-    });
+      // Create shared border material with glow effect
+      this.borderMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xffffff, 
+          wireframe: true,
+          transparent: true,
+          opacity: 0.4
+      });
+      
+      // Create more Y2K-styled ghost material
+      this.ghostMaterial = new THREE.MeshPhongMaterial({ 
+          color: 0xaaaaff, 
+          transparent: true, 
+          opacity: 0.25,
+          shininess: 100,
+          specular: 0x6666ff
+      });
   },
   getBlockMaterial(color) {
-    // Cache materials by color
-    if (!this.blockMaterials[color]) {
-      this.blockMaterials[color] = new THREE.MeshPhongMaterial({ color: color });
-    }
-    return this.blockMaterials[color];
+      // Cache materials by color
+      if (!this.blockMaterials[color]) {
+          // Create a glossy, reflective material for the Y2K look
+          this.blockMaterials[color] = new THREE.MeshPhongMaterial({ 
+              color: color,
+              shininess: 100,
+              specular: 0xffffff,
+              transparent: true,
+              opacity: 0.9,
+              emissive: color,
+              emissiveIntensity: 0.2
+          });
+      }
+      return this.blockMaterials[color];
   },
   getBorderMaterial() {
-    return this.borderMaterial;
+      return this.borderMaterial;
   },
   getGhostMaterial() {
-    return this.ghostMaterial;
+      return this.ghostMaterial;
+  },
+  setEnvMap(texture) {
+      this.envMap = texture;
+      // Apply to all materials
+      Object.values(this.blockMaterials).forEach(material => {
+          material.envMap = texture;
+          material.envMapIntensity = 0.5;
+          material.needsUpdate = true;
+      });
+      
+      this.ghostMaterial.envMap = texture;
+      this.ghostMaterial.envMapIntensity = 0.3;
+      this.ghostMaterial.needsUpdate = true;
   }
 };
 
@@ -308,44 +376,40 @@ function restartGame2(){
 
 // Initialize the next piece preview
 function initNextPiecePreview() {
-    const canvas = document.getElementById('next-piece-canvas');
-    
-    // Create renderer
-    nextPieceRenderer = new THREE.WebGLRenderer({ 
-        canvas: canvas,
-        antialias: true 
-    });
-    
-    // Use deviceUtils for device detection
-    if(deviceUtils.isMobile()){
-      console.log("small next piece preview window");
-      nextPieceRenderer.setSize(50, 50);
-    } else {
-      console.log("large next piece preview window");
-      nextPieceRenderer.setSize(100, 100);
-    }
-    
-    nextPieceRenderer.setClearColor(0x111111);
-    
-    // Create scene
-    nextPieceScene = new THREE.Scene();
-    
-    // Create camera
-    nextPieceCamera = new THREE.OrthographicCamera(-3, 3, 3, -3, 1, 10);
-    nextPieceCamera.position.z = 5;
-    
-    // Add lights (these will be recreated in renderNextPiecePreview)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    nextPieceScene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(2, 3, 5);
-    nextPieceScene.add(directionalLight);
-    
-    // Force initial render
-    nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
-    
-    console.log("Next piece preview initialized");
+  const canvas = document.getElementById('next-piece-canvas');
+  
+  // Create renderer
+  nextPieceRenderer = new THREE.WebGLRenderer({ 
+      canvas: canvas,
+      antialias: true
+  });
+  
+  // Use deviceUtils for device detection
+  if(deviceUtils.isMobile()){
+    nextPieceRenderer.setSize(60, 60);
+  } else {
+    nextPieceRenderer.setSize(110, 110);
+  }
+  
+  nextPieceRenderer.setClearColor(0x000033);
+  
+  // Create scene
+  nextPieceScene = new THREE.Scene();
+  
+  // Create camera
+  nextPieceCamera = new THREE.OrthographicCamera(-3, 3, 3, -3, 1, 10);
+  nextPieceCamera.position.z = 5;
+  
+  // Add basic lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  nextPieceScene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight.position.set(2, 3, 5);
+  nextPieceScene.add(directionalLight);
+  
+  // Force initial render
+  nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
 }
 
 // Render the next piece preview
@@ -364,11 +428,23 @@ function renderNextPiecePreview() {
       nextPieceScene.remove(object);
   }
   
-  // Add lights back to the scene
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+  // Add a simple dark background
+  const bgGeometry = new THREE.PlaneGeometry(6, 6);
+  const bgMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000033,
+      transparent: true,
+      opacity: 0.8
+  });
+  
+  const bgPlane = new THREE.Mesh(bgGeometry, bgMaterial);
+  bgPlane.position.z = -1;
+  nextPieceScene.add(bgPlane);
+  
+  // Add just basic lighting - simple ambient and one directional
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
   nextPieceScene.add(ambientLight);
   
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
   directionalLight.position.set(2, 3, 5);
   nextPieceScene.add(directionalLight);
 
@@ -382,25 +458,29 @@ function renderNextPiecePreview() {
   const width = nextPiece.shape[0].length;
   const height = nextPiece.shape.length;
   
-  // Center the piece in the preview window
-  const offsetX = width / 2;
-  const offsetY = height / 2;
-  
-  // Add blocks for next piece
+  // Add blocks for next piece with simplified Y2K styling
   for (let y = 0; y < nextPiece.shape.length; y++) {
       for (let x = 0; x < nextPiece.shape[y].length; x++) {
           if (nextPiece.shape[y][x]) {
-              const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
-              const material = new THREE.MeshPhongMaterial({ color: nextPiece.color });
+              // Create a basic block with some depth
+              const geometry = new THREE.BoxGeometry(0.85, 0.85, 0.4);
+              
+              // Create a simple glossy material
+              const material = new THREE.MeshPhongMaterial({ 
+                  color: nextPiece.color,
+                  shininess: 60,
+                  specular: 0xffffff
+              });
+              
               const cube = new THREE.Mesh(geometry, material);
               
               // Position the cube centered in preview
               cube.position.set(
-                x - 0.5,   // Center horizontally
-                y - 0.5,   // Fix vertical orientation
+                x + 0.5 - width/2,  // Center horizontally based on piece width
+                y + 0.5 - height/2,  // Center vertically based on piece height
                 0
               );
-
+              
               nextPieceScene.add(cube);
           }
       }
@@ -600,17 +680,36 @@ function createBlock(x, y, color, isPiece = false) {
   // Create a group to hold both the main block and its border
   const blockGroup = new THREE.Group();
   
-  // Main block (using pooled geometry and cached materials)
+  // Main block with rounded corners (use BufferGeometry for better performance)
+  const cubeGeom = blockGeometryPool.getGeometry();
   const cube = new THREE.Mesh(
-    blockGeometryPool.getGeometry(),
-    materialCache.getBlockMaterial(color)
+      cubeGeom,
+      materialCache.getBlockMaterial(color)
   );
+  
+  cube.scale.set(0.85, 0.85, 0.85); // Scale down slightly to create gap between blocks
   
   // Border using pooled geometry and shared material
   const border = new THREE.Mesh(
-    blockGeometryPool.getBorderGeometry(),
-    materialCache.getBorderMaterial()
+      blockGeometryPool.getBorderGeometry(),
+      materialCache.getBorderMaterial()
   );
+  
+  // Add a glow effect for active pieces
+  if (isPiece) {
+      const glowMaterial = new THREE.MeshBasicMaterial({
+          color: color,
+          transparent: true,
+          opacity: 0.15,
+      });
+      
+      const glow = new THREE.Mesh(
+          blockGeometryPool.getBorderGeometry().clone().scale(1.1, 1.1, 1.1),
+          glowMaterial
+      );
+      
+      blockGroup.add(glow);
+  }
   
   // Add both to the group
   blockGroup.add(cube);
@@ -618,9 +717,15 @@ function createBlock(x, y, color, isPiece = false) {
   
   // Position the group
   blockGroup.position.set(x + BLOCK_SIZE / 2, y + BLOCK_SIZE / 2, 0);
-  
+
   // Add custom data for tracking
-  blockGroup.userData = { x, y, color, isPiece };
+  blockGroup.userData = { 
+      ...blockGroup.userData,
+      x, 
+      y, 
+      color, 
+      isPiece 
+  };
   
   // Add to scene and blocks array
   scene.add(blockGroup);
@@ -884,17 +989,6 @@ function checkLines() {
         cancelAnimationFrame(gameLoopId);
         gameLoopId = requestAnimationFrame(animate);
       }
-      
-      // const newLevel = Math.floor(score / 1000) + 1;
-      // if (newLevel > level) {
-      //     level = newLevel;
-      //     document.getElementById('level').textContent = level;
-          
-      //     // Speed up the game
-      //     gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
-      //     cancelAnimationFrame(gameLoopId);
-      //     gameLoopId = requestAnimationFrame(animate);
-      // }
   }
 }
 
@@ -979,49 +1073,71 @@ function playGame() {
   }
 }
 
-// Animation loop
-let lastUpdateTime = 0;
-let gameLoopId = null;
-
 // Function to create a border in the Three.js scene
 function createThreeBorder() {
-
   // Calculate the actual board dimensions
   const boardWidth = BOARD_WIDTH;
   const boardHeight = BOARD_HEIGHT;
   
-  // Create an inner border with a different color for contrast
+  // Create glowing inner border
   const innerBorderMaterial = new THREE.LineBasicMaterial({ 
-    color: 0xFFFFFF, // White
-    transparent: true,
-    opacity: 0.8,
-    linewidth: 6,
+      color: 0x33ccff,
+      transparent: true,
+      opacity: 0.8,
+      linewidth: 2,
   });
   
   // Create slightly smaller inner border
   const innerBorderGeometry = new THREE.BufferGeometry().setFromPoints([
-    // Bottom edge
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(boardWidth, 0, 0),
-    
-    // Right edge
-    new THREE.Vector3(boardWidth, 0, 0),
-    new THREE.Vector3(boardWidth, boardHeight, 0),
-    
-    // Top edge
-    new THREE.Vector3(boardWidth, boardHeight, 0),
-    new THREE.Vector3(0, boardHeight, 0),
-    
-    // Left edge
-    new THREE.Vector3(0, boardHeight, 0),
-    new THREE.Vector3(0, 0, 0)
+      // Bottom edge
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(boardWidth, 0, 0),
+      
+      // Right edge
+      new THREE.Vector3(boardWidth, 0, 0),
+      new THREE.Vector3(boardWidth, boardHeight, 0),
+      
+      // Top edge
+      new THREE.Vector3(boardWidth, boardHeight, 0),
+      new THREE.Vector3(0, boardHeight, 0),
+      
+      // Left edge
+      new THREE.Vector3(0, boardHeight, 0),
+      new THREE.Vector3(0, 0, 0)
   ]);
   
   const innerBorderLines = new THREE.LineSegments(innerBorderGeometry, innerBorderMaterial);
-  
-  // Add the inner border to the scene
   scene.add(innerBorderLines);
-
+  
+  // Add an outer glow border
+  const outerBorderMaterial = new THREE.LineBasicMaterial({ 
+      color: 0xff66cc,
+      transparent: true,
+      opacity: 0.5,
+      linewidth: 1,
+  });
+  
+  // Create outer border with offset
+  const outerBorderGeometry = new THREE.BufferGeometry().setFromPoints([
+      // Bottom edge
+      new THREE.Vector3(-0.2, -0.2, 0),
+      new THREE.Vector3(boardWidth + 0.2, -0.2, 0),
+      
+      // Right edge
+      new THREE.Vector3(boardWidth + 0.2, -0.2, 0),
+      new THREE.Vector3(boardWidth + 0.2, boardHeight + 0.2, 0),
+      
+      // Top edge
+      new THREE.Vector3(boardWidth + 0.2, boardHeight + 0.2, 0),
+      new THREE.Vector3(-0.2, boardHeight + 0.2, 0),
+      
+      // Left edge
+      new THREE.Vector3(-0.2, boardHeight + 0.2, 0),
+      new THREE.Vector3(-0.2, -0.2, 0)
+  ]);
+  
+  const outerBorderLines = new THREE.LineSegments(outerBorderGeometry, outerBorderMaterial);
+  scene.add(outerBorderLines);
 }
 
 // Start the game when the page loads

@@ -39,7 +39,7 @@ const touchState = {
 
 // Touch control sensitivity constants
 const TOUCH_CONTROLS = {
-  MOVE_THRESHOLD: 8,            // Pixels needed for horizontal movement
+  MOVE_THRESHOLD: 9,            // Pixels needed for horizontal movement
   DOWN_THRESHOLD: 12,            // Pixels needed for downward movement
   VERTICAL_BIAS_THRESHOLD: 2.0,  // Ratio of vertical to horizontal movement to consider primarily vertical
   HORIZONTAL_BIAS_THRESHOLD: 2,  // Ratio of horizontal to vertical movement to consider primarily horizontal
