@@ -1,11 +1,8 @@
 /*
 To do:
-Glossy 3D buttons
-Frutiger Aero styling for the whole page
 Some animations
 Background music?
 Play sound upon level up / locking the block
-Change button stying / colors
 Increase sensitivity of multi-movement drags to the left / right
 */
 
