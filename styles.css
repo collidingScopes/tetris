@@ -357,13 +357,18 @@ canvas {
 @media (max-width: 768px) {
   
   #start-screen h1 {
-    font-size: 40px;
+    font-size: 38px;
+  }
+
+  #button-container {
+    top: 0px;
+    left: 0px;
   }
   
   #info-container {
-    font-size: 12px;
-    top: 5px;
-    right: 5px;
+    font-size: 10px;
+    top: 0px;
+    right: 0px;
     padding: 5px;
     gap: 10px;
   }
@@ -401,8 +406,10 @@ canvas {
   }
   
   #next-piece-container {
-    top: 70px;
-    padding: 10px;
+    top: 40px;
+    right: 0px;
+    padding: 5px;
+    opacity: 0.5;
   }
 }
 
