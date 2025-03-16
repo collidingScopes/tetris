@@ -8,7 +8,6 @@
  * @returns {boolean} Whether the device is mobile
  */
 function adaptUIForDevice() {
-  let isMobile = deviceUtils.isMobile();
   
   // Elements to update
   const desktopControls = document.querySelector('#start-screen .controls-list:not(.mobile-controls .controls-list)');

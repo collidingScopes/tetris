@@ -53,3 +53,6 @@ const deviceUtils = {
     return 'vibrate' in navigator;
   }
 };
+
+let isMobile = deviceUtils.isMobile();
+let isLowPerformance = deviceUtils.isLowPerformanceDevice();

@@ -142,7 +142,9 @@ canvas {
 }
 
 #play-button {
-  font-size: 26px;
+  font-size: 34px;
+  width: 60px;
+  height: 60px;
 }
 
 #mute-button {
@@ -185,10 +187,10 @@ canvas {
 #game-over h1 {
   font-size: 36px;
   margin-bottom: 20px;
-  background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+  background: linear-gradient(to right, var(--secondary-color), var(--light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 10px rgba(0, 162, 255, 0.3);
+  text-shadow: 0 2px 10px rgba(0, 162, 255, 0.6);
 }
 
 /* Start Screen with Frosted Glass Effect */
@@ -196,7 +198,7 @@ canvas {
 #start-screen h1 {
   font-size: 48px;
   margin-bottom: 20px;
-  background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+  background: linear-gradient(to right, var(--secondary-color), var(--light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 0 2px 10px rgba(0, 162, 255, 0.3);

@@ -268,7 +268,7 @@ function handleTouchCancel() {
  * Sets up touch event handlers on the game canvas
  */
 function setupTouchHandlers() {
-  if (!deviceUtils.isMobile()) {
+  if (!isMobile) {
     console.log("Not initializing touch controls for non-mobile device");
     return;
   }
@@ -363,7 +363,7 @@ function waitForCanvas() {
  * Fix mobile button interactions
  */
 function fixMobileButtons() {
-  if (!deviceUtils.isMobile()) return;
+  if (!isMobile) return;
   
   const buttonIds = [
     'start-button', 
@@ -421,7 +421,7 @@ function fixMobileButtons() {
  * Initialize touch controls
  */
 function initTouchControls() {
-  if (!deviceUtils.isMobile()) return;
+  if (!isMobile) return;
   
   console.log("Initializing touch controls");
   

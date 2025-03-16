@@ -66,7 +66,7 @@ let nextPieceRenderer = null;
 let nextPieceScene = null;
 let nextPieceCamera = null;
 let fpsCounter;
-let isMobile = deviceUtils.isMobile();
+
 let viewSize;
 if(isMobile){
   viewSize = 24;
@@ -82,10 +82,6 @@ let gameLoopId = null;
 function init() {
   // Initialize audio first
   initAudio();
-
-  // Get device information from deviceUtils
-  const isMobile = deviceUtils.isMobile();
-  const isLowPerformance = deviceUtils.isLowPerformanceDevice();
   
   console.log("Device detection - Mobile:", isMobile, "Low Performance:", isLowPerformance);
   
@@ -143,23 +139,26 @@ function init() {
   // Y2K-style lighting setup
   // Remove default lighting and add new Y2K-themed lights
   // Main ambient light - subtle blue tone
-  const ambientLight = new THREE.AmbientLight(0x6666ff, 0.4);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
   scene.add(ambientLight);
   
+  /*
   // Main directional light - bright white for primary illumination
-  const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  const mainLight = new THREE.DirectionalLight(0xff0000, 0.8);
   mainLight.position.set(10, 20, 15);
   scene.add(mainLight);
   
   // Fill light - blue-cyan for that Y2K feel
-  const fillLight = new THREE.DirectionalLight(0x00ccff, 0.4);
+  const fillLight = new THREE.DirectionalLight(0x00ccff, 0.9);
   fillLight.position.set(-15, 10, 8);
   scene.add(fillLight);
   
   // Rim light - magenta to create that distinctive Y2K glow on edges
+
   const rimLight = new THREE.DirectionalLight(0xff00ff, 0.3);
   rimLight.position.set(0, -10, -10);
   scene.add(rimLight);
+  */
 
   // Create game board grid
   createGrid();
@@ -252,7 +251,9 @@ const blockGeometryPool = {
   borderGeometry: null,
   init() {
     this.geometry = new THREE.BoxGeometry(BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95, BLOCK_SIZE * 0.95);
+    this.geometry.isShared = true; // Mark as shared resource
     this.borderGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+    this.borderGeometry.isShared = true; // Mark as shared resource
   },
   getGeometry() {
     return this.geometry;
@@ -276,15 +277,16 @@ const materialCache = {
           transparent: true,
           opacity: 0.4
       });
+      this.borderMaterial.isShared = true;
       
       // Create more Y2K-styled ghost material
       this.ghostMaterial = new THREE.MeshPhongMaterial({ 
           color: 0xaaaaff, 
           transparent: true, 
-          opacity: 0.25,
-          shininess: 100,
-          specular: 0x6666ff
+          opacity: 0.12,
       });
+      this.ghostMaterial.isShared = true;
+
   },
   getBlockMaterial(color) {
       // Cache materials by color
@@ -292,12 +294,7 @@ const materialCache = {
           // Create a glossy, reflective material for the Y2K look
           this.blockMaterials[color] = new THREE.MeshPhongMaterial({ 
               color: color,
-              shininess: 100,
-              specular: 0xffffff,
               transparent: true,
-              opacity: 0.9,
-              emissive: color,
-              emissiveIntensity: 0.2
           });
       }
       return this.blockMaterials[color];
@@ -308,20 +305,55 @@ const materialCache = {
   getGhostMaterial() {
       return this.ghostMaterial;
   },
-  setEnvMap(texture) {
-      this.envMap = texture;
-      // Apply to all materials
-      Object.values(this.blockMaterials).forEach(material => {
-          material.envMap = texture;
-          material.envMapIntensity = 0.5;
-          material.needsUpdate = true;
-      });
-      
-      this.ghostMaterial.envMap = texture;
-      this.ghostMaterial.envMapIntensity = 0.3;
-      this.ghostMaterial.needsUpdate = true;
-  }
 };
+
+function disposeThreeJsObject(object) {
+  if (!object) return;
+  
+  // Handle children first
+  if (object.children) {
+    // Create a copy of the children array to avoid modification during iteration
+    const children = [...object.children];
+    for (const child of children) {
+      disposeThreeJsObject(child);
+    }
+  }
+  
+  // Remove from parent
+  if (object.parent) {
+    object.parent.remove(object);
+  }
+  
+  // Dispose of geometries and materials
+  if (object.geometry && !object.geometry.isShared) {
+    object.geometry.dispose();
+  }
+  
+  if (object.material) {
+    if (Array.isArray(object.material)) {
+      for (const material of object.material) {
+        if (material && !material.isShared) {
+          disposeMaterial(material);
+        }
+      }
+    } else if (!object.material.isShared) {
+      disposeMaterial(object.material);
+    }
+  }
+}
+
+function disposeMaterial(material) {
+  if (!material) return;
+  
+  // Dispose of material properties
+  for (const prop in material) {
+    if (material[prop] && typeof material[prop].dispose === 'function') {
+      material[prop].dispose();
+    }
+  }
+  
+  material.dispose();
+}
 
 // Helper function for visibility changes
 function handleVisibilityChange() {
@@ -381,8 +413,7 @@ function initNextPiecePreview() {
       antialias: true
   });
   
-  // Use deviceUtils for device detection
-  if(deviceUtils.isMobile()){
+  if(isMobile){
     nextPieceRenderer.setSize(60, 60);
   } else {
     nextPieceRenderer.setSize(110, 110);
@@ -397,11 +428,7 @@ function initNextPiecePreview() {
   nextPieceCamera = new THREE.OrthographicCamera(-3, 3, 3, -3, 1, 10);
   nextPieceCamera.position.z = 5;
   
-  // Add basic lights
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-  nextPieceScene.add(ambientLight);
-  
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
   directionalLight.position.set(2, 3, 5);
   nextPieceScene.add(directionalLight);
   
@@ -437,11 +464,7 @@ function renderNextPiecePreview() {
   bgPlane.position.z = -1;
   nextPieceScene.add(bgPlane);
   
-  // Add just basic lighting - simple ambient and one directional
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-  nextPieceScene.add(ambientLight);
-  
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
   directionalLight.position.set(2, 3, 5);
   nextPieceScene.add(directionalLight);
 
@@ -732,10 +755,7 @@ function createBlock(x, y, color, isPiece = false) {
 }
 
 function cleanupBlock(block) {
-  scene.remove(block);
-  
-  // In pooled mode, we don't need to dispose geometries or shared materials
-  // Just remove references to the block
+  disposeThreeJsObject(block);
   return null;
 }
 
