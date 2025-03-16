@@ -22,7 +22,7 @@ const COLORS = [
     0xffff00, // Yellow - O
     0xff00ff, // Magenta - S
     0x00ffff, // Cyan - T
-    0xffa500  // Orange - Z
+    0x7300c8,  // Purple - Z
 ];
 
 // Tetromino shapes
@@ -67,6 +67,7 @@ if(isMobile){
 } else {
   viewSize = 22;
 }
+let currentLevelLinesCleared = 0;
 
 // Initialize Three.js
 function init() {
@@ -351,56 +352,64 @@ function initNextPiecePreview() {
 
 // Render the next piece preview
 function renderNextPiecePreview() {
-    // First thoroughly clean the scene
-    while (nextPieceScene.children.length > 0) {
-        const object = nextPieceScene.children[0];
-        if (object.geometry) object.geometry.dispose();
-        if (object.material) {
-            if (Array.isArray(object.material)) {
-                object.material.forEach(material => material.dispose());
-            } else {
-                object.material.dispose();
-            }
-        }
-        nextPieceScene.remove(object);
-    }
-    
-    // Add lights back to the scene
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    nextPieceScene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(2, 3, 5);
-    nextPieceScene.add(directionalLight);
-    
-    if (!nextPiece) {
-        console.error("No next piece to render in preview!");
-        nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
-        return;
-    }
-    
-    // Calculate center position
-    const offsetX = nextPiece.shape[0].length / 2;
-    const offsetY = nextPiece.shape.length / 2;
-    
-    // Add blocks for next piece
-    for (let y = 0; y < nextPiece.shape.length; y++) {
-        for (let x = 0; x < nextPiece.shape[y].length; x++) {
-            if (nextPiece.shape[y][x]) {
-                const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
-                const material = new THREE.MeshPhongMaterial({ color: nextPiece.color });
-                const cube = new THREE.Mesh(geometry, material);
-                
-                // Position the cube centered in preview
-                cube.position.set(x - offsetX + 0.5, offsetY - y - 0.5, 0);
+  // First thoroughly clean the scene
+  while (nextPieceScene.children.length > 0) {
+      const object = nextPieceScene.children[0];
+      if (object.geometry) object.geometry.dispose();
+      if (object.material) {
+          if (Array.isArray(object.material)) {
+              object.material.forEach(material => material.dispose());
+          } else {
+              object.material.dispose();
+          }
+      }
+      nextPieceScene.remove(object);
+  }
+  
+  // Add lights back to the scene
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  nextPieceScene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(2, 3, 5);
+  nextPieceScene.add(directionalLight);
+  
+  if (!nextPiece) {
+      console.error("No next piece to render in preview!");
+      nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
+      return;
+  }
+  
+  // Calculate center position based on shape dimensions
+  const width = nextPiece.shape[0].length;
+  const height = nextPiece.shape.length;
+  
+  // Center the piece in the preview window
+  const offsetX = width / 2;
+  const offsetY = height / 2;
+  
+  // Add blocks for next piece
+  for (let y = 0; y < nextPiece.shape.length; y++) {
+      for (let x = 0; x < nextPiece.shape[y].length; x++) {
+          if (nextPiece.shape[y][x]) {
+              const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+              const material = new THREE.MeshPhongMaterial({ color: nextPiece.color });
+              const cube = new THREE.Mesh(geometry, material);
+              
+              // Position the cube centered in preview
+              cube.position.set(
+                offsetX - x + 0.5,   // Center horizontally
+                (height - y - 1) - offsetY + 0.5,   // Fix vertical orientation
+                0
+              );
 
-                nextPieceScene.add(cube);
-            }
-        }
-    }
-    
-    // Force a render
-    nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
+              nextPieceScene.add(cube);
+          }
+      }
+  }
+  
+  // Force a render
+  nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
 }
 
 // Create grid lines for visual reference
@@ -862,18 +871,32 @@ function checkLines() {
       } catch (e) {
           // Skip high score update if localStorage is not available
       }
-      
+
       // Increase level every 10 lines
-      const newLevel = Math.floor(score / 1000) + 1;
-      if (newLevel > level) {
-          level = newLevel;
-          document.getElementById('level').textContent = level;
+      currentLevelLinesCleared += linesCleared;
+      if(currentLevelLinesCleared>=10){
+        
+        // Increase level
+        currentLevelLinesCleared = 0;
+        level++;
+        document.getElementById('level').textContent = level;
           
-          // Speed up the game
-          gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
-          cancelAnimationFrame(gameLoopId);
-          gameLoopId = requestAnimationFrame(animate);
+        // Speed up the game
+        gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
+        cancelAnimationFrame(gameLoopId);
+        gameLoopId = requestAnimationFrame(animate);
       }
+      
+      // const newLevel = Math.floor(score / 1000) + 1;
+      // if (newLevel > level) {
+      //     level = newLevel;
+      //     document.getElementById('level').textContent = level;
+          
+      //     // Speed up the game
+      //     gameSpeed = Math.max(100, initialGameSpeed * Math.pow(speedMultiplier,level-1) );
+      //     cancelAnimationFrame(gameLoopId);
+      //     gameLoopId = requestAnimationFrame(animate);
+      // }
   }
 }
 
@@ -940,11 +963,8 @@ function togglePause() {
     gamePaused = !gamePaused;
         
     if (gamePaused) {
-        //clearInterval(gameLoop);
-        cancelAnimationFrame(gameLoopId);
-        
+        cancelAnimationFrame(gameLoopId);        
         document.getElementById("pause-overlay").classList.remove("hidden");
-        
     } else {
         gameLoopId = requestAnimationFrame(animate);
         document.getElementById("pause-overlay").classList.add("hidden");
@@ -952,12 +972,10 @@ function togglePause() {
 }
 
 function playGame() {
-        
   if (gamePaused) {
     gameLoopId = requestAnimationFrame(animate);
     document.getElementById("pause-overlay").classList.add("hidden");
-    gamePaused = false  
-
+    gamePaused = false;
   } else {
 
   }
