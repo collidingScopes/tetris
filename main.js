@@ -4,9 +4,7 @@ Glossy 3D buttons
 Frutiger Aero styling for the whole page
 Some animations
 Background music?
-Change level-up logic to be based on lines instead of 1000 score point increments
 Play sound upon level up / locking the block
-Fix piece inversion in the next piece window
 Change button stying / colors
 Increase sensitivity of multi-movement drags to the left / right
 */
@@ -21,8 +19,8 @@ const COLORS = [
     0x0000ff, // Blue - L
     0xffff00, // Yellow - O
     0xff00ff, // Magenta - S
-    0x00ffff, // Cyan - T
-    0x7300c8,  // Purple - Z
+    0x7300c8, // Purple - T
+    0x00ffff,  // Cyan - Z
 ];
 
 // Tetromino shapes
@@ -367,13 +365,13 @@ function renderNextPiecePreview() {
   }
   
   // Add lights back to the scene
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
   nextPieceScene.add(ambientLight);
   
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
   directionalLight.position.set(2, 3, 5);
   nextPieceScene.add(directionalLight);
-  
+
   if (!nextPiece) {
       console.error("No next piece to render in preview!");
       nextPieceRenderer.render(nextPieceScene, nextPieceCamera);
@@ -398,8 +396,8 @@ function renderNextPiecePreview() {
               
               // Position the cube centered in preview
               cube.position.set(
-                offsetX - x + 0.5,   // Center horizontally
-                (height - y - 1) - offsetY + 0.5,   // Fix vertical orientation
+                x - 0.5,   // Center horizontally
+                y - 0.5,   // Fix vertical orientation
                 0
               );
 
