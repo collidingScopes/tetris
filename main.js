@@ -87,6 +87,11 @@ function init() {
   
   // Initialize UI adjustments based on device
   adaptUIForDevice();
+
+  // Initialize hand controls if available
+  if (typeof initHandControls === 'function') {
+    initHandControls();
+  }
   
   // Load high score from localStorage with fallback
   try {
@@ -1159,3 +1164,8 @@ function createThreeBorder() {
 
 // Start the game when the page loads
 window.addEventListener('load', init);
+
+// Expose game control functions to the global scope for hand controls
+window.movePiece = movePiece;
+window.rotatePiece = rotatePiece;
+window.dropPiece = dropPiece;
