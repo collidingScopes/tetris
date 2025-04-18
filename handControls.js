@@ -41,28 +41,35 @@ let indexFingerNotificationElement = null;
  * Initialize hand controls
  */
 function initHandControls() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    console.error("getUserMedia is not supported in this browser");
-    return;
-  }
-
-  // Set up MediaPipe Hands when the module is loaded
-  if (window.Holistic) {
-    console.log("MediaPipe already loaded, initializing hands");
-    setupMediaPipeHands();
-  } else {
-    console.log("Loading MediaPipe scripts");
-    loadMediaPipeScripts().then(() => {
-      console.log("MediaPipe loaded, initializing hands");
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error("getUserMedia is not supported in this browser");
+      return;
+    }
+  
+    // Set up MediaPipe Hands when the module is loaded
+    if (window.Holistic) {
+      console.log("MediaPipe already loaded, initializing hands");
       setupMediaPipeHands();
+    } else {
+      console.log("Loading MediaPipe scripts");
+      loadMediaPipeScripts().then(() => {
+        console.log("MediaPipe loaded, initializing hands");
+        setupMediaPipeHands();
+      });
+    }
+    
+    // Create the fist notification element
+    createFistNotification();
+    
+    // Create the index finger notification element
+    createIndexFingerNotification();
+    
+    // Add listener for game events to update controls
+    document.addEventListener('gameResumed', updateControlsDisplay);
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initial controls setup
+      updateControlsDisplay();
     });
-  }
-  
-  // Create the fist notification element
-  createFistNotification();
-  
-  // Create the index finger notification element
-  createIndexFingerNotification();
 }
 
 /**
@@ -214,80 +221,117 @@ function setupMediaPipeHands() {
  * Add toggle button to enable hand controls
  */
 function addHandControlsToggle() {
-  // Create button to toggle hand controls
-  const handControlsButton = document.createElement('button');
-  handControlsButton.id = 'hand-controls-button';
-  handControlsButton.className = 'button';
-  handControlsButton.textContent = '👋';
-  handControlsButton.title = 'Hand Controls';
-  handControlsButton.style.position = 'absolute';
-  handControlsButton.style.left = '25px';
-  handControlsButton.style.top = '45px';
-  handControlsButton.style.zIndex = '100';
-  handControlsButton.style.borderRadius = '50%';
-  handControlsButton.style.fontSize = '20px';
-  handControlsButton.style.width = '44px';
-  handControlsButton.style.height = '44px';
-  handControlsButton.style.padding = '0';
-  handControlsButton.style.display = 'flex';
-  handControlsButton.style.alignItems = 'center';
-  handControlsButton.style.justifyContent = 'center';
+    // Create button to toggle hand controls
+    const handControlsButton = document.createElement('button');
+    handControlsButton.id = 'hand-controls-button';
+    handControlsButton.className = 'button';
+    handControlsButton.textContent = '👋';
+    handControlsButton.title = 'Hand Controls';
+    handControlsButton.style.position = 'absolute';
+    handControlsButton.style.left = '25px';
+    handControlsButton.style.top = '45px';
+    handControlsButton.style.zIndex = '100';
+    handControlsButton.style.borderRadius = '50%';
+    handControlsButton.style.fontSize = '20px';
+    handControlsButton.style.width = '44px';
+    handControlsButton.style.height = '44px';
+    handControlsButton.style.padding = '0';
+    handControlsButton.style.display = 'flex';
+    handControlsButton.style.alignItems = 'center';
+    handControlsButton.style.justifyContent = 'center';
+  
+    // Add to button container
+    const buttonContainer = document.getElementById('button-container');
+    buttonContainer.appendChild(handControlsButton);
+  
+    // Add event listener - toggle tracking and update controls info
+    handControlsButton.addEventListener('click', () => {
+      toggleHandTracking();
+      updateControlsDisplay();
+    });
+  
+    // Add to game UI
+    const startScreenControls = document.querySelector('#start-screen .controls-list:not(.mobile-controls .controls-list)');
+    if (startScreenControls) {
+      const handControlsOption = document.createElement('li');
+      handControlsOption.innerHTML = '<strong>👋 Hand Controls:</strong> Enable gesture controls';
+      startScreenControls.appendChild(handControlsOption);
+    }
+}
 
-  // Add to button container
-  const buttonContainer = document.getElementById('button-container');
-  buttonContainer.appendChild(handControlsButton);
-
-  // Add event listener - simplified to directly toggle tracking
-  handControlsButton.addEventListener('click', toggleHandTracking);
-
-  // Add to game UI
-  const startScreenControls = document.querySelector('#start-screen .controls-list:not(.mobile-controls .controls-list)');
-  if (startScreenControls) {
-    const handControlsOption = document.createElement('li');
-    handControlsOption.innerHTML = '<strong>👋 Hand Controls:</strong> Enable gesture controls';
-    startScreenControls.appendChild(handControlsOption);
-  }
+function updateControlsDisplay() {
+    const controlsElement = document.getElementById('controls');
+    if (!controlsElement) return;
+    
+    // Define the base keyboard controls
+    const keyboardControls = `
+      Controls:<br>
+      ← → : Move left/right<br>
+      ↑ : Rotate<br>
+      ↓ : Move down<br>
+      Space : Drop
+    `;
+    
+    // Define the combined controls when hand tracking is enabled
+    const handControls = `
+      Hand Controls:<br>
+      👋 Move hand: Move piece<br>
+      ☝️ Hold index finger: Rotate<br>
+      ✊ Hold fist: Drop piece
+    `;
+    
+    // Update the controls display based on hand tracking state
+    controlsElement.innerHTML = handControlsConfig.enabled ? handControls : keyboardControls;
 }
   
 /**
  * Toggle hand tracking on/off
  */
+/**
+ * Toggle hand tracking on/off
+ */
 function toggleHandTracking() {
-  if (trackingStarted) {
-    // Toggle tracking state
-    handControlsConfig.enabled = !handControlsConfig.enabled;
-    
-    // Toggle visibility
-    document.getElementById('hand-tracking-video').style.display = 
-      handControlsConfig.enabled ? 'block' : 'none';
-    document.getElementById('hand-tracking-canvas').style.display = 
-      handControlsConfig.enabled ? 'block' : 'none';
-    
-    return;
-  }
-
-  // Start tracking if not already started
-  if (handCamera) {
-    try {
-      handCamera.start()
-        .then(() => {
-          console.log('Camera started successfully');
-          trackingStarted = true;
-          handControlsConfig.enabled = true;
-          
-          // Show video and canvas when tracking is active
-          document.getElementById('hand-tracking-video').style.display = 'block';
-          document.getElementById('hand-tracking-canvas').style.display = 'block';
-        })
-        .catch(error => {
-          console.error('Error starting camera:', error);
-        });
-    } catch (error) {
-      console.error('Error starting camera:', error);
+    if (trackingStarted) {
+      // Toggle tracking state
+      handControlsConfig.enabled = !handControlsConfig.enabled;
+      
+      // Toggle visibility
+      document.getElementById('hand-tracking-video').style.display = 
+        handControlsConfig.enabled ? 'block' : 'none';
+      document.getElementById('hand-tracking-canvas').style.display = 
+        handControlsConfig.enabled ? 'block' : 'none';
+      
+      // Update controls display
+      updateControlsDisplay();
+      
+      return;
     }
-  } else {
-    console.error('Camera not initialized');
-  }
+  
+    // Start tracking if not already started
+    if (handCamera) {
+      try {
+        handCamera.start()
+          .then(() => {
+            console.log('Camera started successfully');
+            trackingStarted = true;
+            handControlsConfig.enabled = true;
+            
+            // Show video and canvas when tracking is active
+            document.getElementById('hand-tracking-video').style.display = 'block';
+            document.getElementById('hand-tracking-canvas').style.display = 'block';
+            
+            // Update controls display
+            updateControlsDisplay();
+          })
+          .catch(error => {
+            console.error('Error starting camera:', error);
+          });
+      } catch (error) {
+        console.error('Error starting camera:', error);
+      }
+    } else {
+      console.error('Camera not initialized');
+    }
 }
   
 /**
