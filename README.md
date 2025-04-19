@@ -1,27 +1,22 @@
-# ✋ Fruit Ninja 🥷
+# ✋ Tetris Computer Vision 👀
 
-A browser-based Fruit Ninja game using hand-tracking. No additional hardware required - just a webcam.
+A browser-based Tetris game that you can play with natural hand gestures. No additional hardware required - just a webcam.
 
-Play here 🎮: [https://collidingscopes.github.io/fruit-ninja/](https://collidingscopes.github.io/fruit-ninja/)
+Play here 🎮: [https://collidingscopes.github.io/tetris](https://collidingscopes.github.io/tetris)
 
 ## Features
 
 - **Hand tracking**: Uses MediaPipe for real-time hand detection
 - **3D fruits**: Built with Three.js for smooth 3D animations
-- **Gesture-based controls**: Slice fruits by moving your hand quickly
-- **Visual feedback**: Colorful blade trails and explosion particles
+- **Gesture-based controls**: Move pieces via hand movements and gestures
 - **Scoring system**: Keep track of your high score
-- **Lives system**: Miss a fruit and lose a life (5 lives to start)
 - **Progressive difficulty**: Game gets harder as you progress
 
 ## How to Play
 
 1. Allow camera access when prompted
-2. Position yourself so your hand is visible in the webcam feed (left side of screen)
+2. Position yourself so your hand is visible in the webcam feed
 3. Click "Start" to begin
-4. Move your hand quickly to slice fruits that appear on the right side
-5. Avoid missing fruits to maintain your lives
-6. Try to achieve the highest score!
 
 ## Technical Details
 
