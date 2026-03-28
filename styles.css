@@ -75,6 +75,20 @@ canvas {
   z-index: 150;
 }
 
+/* Info Container with Glossy Effect */
+#drop-button-container {
+  position: absolute;
+  bottom: 1dvh;
+  left: 5;
+  display: flex;
+  gap: 10px;
+  padding: 5px;
+  margin: 0;
+  max-width: 250px;
+  text-align: center;
+  z-index: 150;
+}
+
 /* Glossy Buttons */
 .button {
   padding: 12px 20px;
@@ -418,9 +432,6 @@ canvas {
 /* Drop button - mobile only */
 #drop-button {
   display: none;
-  position: fixed;
-  bottom: 1dvh;
-  left: 10px;
   z-index: 300;
   align-items: center;
   justify-content: center;
