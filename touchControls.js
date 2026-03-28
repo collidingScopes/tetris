@@ -72,6 +72,7 @@ function isUIElement(element) {
     element.id === 'play-button' ||
     element.id === 'mute-button' ||
     element.id === 'pause-button' ||
+    element.id === 'drop-button' ||
     element.id === 'starting-level' ||
     element.id === 'restarting-level1' ||
     element.id === 'restarting-level2'
@@ -371,7 +372,8 @@ function fixMobileButtons() {
     'restart-button2', 
     'play-button',
     'pause-button',
-    'mute-button'
+    'mute-button',
+    'drop-button'
   ];
   
   buttonIds.forEach(id => {
@@ -441,6 +443,22 @@ function initTouchControls() {
     }
   });
 }
+
+// Drop button handler
+document.addEventListener('DOMContentLoaded', () => {
+  const dropButton = document.getElementById('drop-button');
+  if (dropButton) {
+    dropButton.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!gameStarted || gameOver || gamePaused) return;
+      dropPiece();
+      if (deviceUtils.supportsVibration()) {
+        navigator.vibrate(30);
+      }
+    }, { passive: false });
+  }
+});
 
 // Initialize on load
 window.addEventListener('load', initTouchControls);
